@@ -22,6 +22,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+# wrangler local dev state
+.wrangler/
+
 # localized assets (downloaded at build time, not committed)
 public/ghost-assets/
 public/pocketbase-assets/
