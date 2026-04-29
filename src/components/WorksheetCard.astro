@@ -1,5 +1,6 @@
 ---
 import { Image } from "astro:assets";
+import placeholderImg from "../assets/images/placeholder.jpg";
 
 interface Props {
   post: any;
@@ -76,7 +77,7 @@ if (isPb) {
       />
     ) : (
       <Image
-        src="/images/placeholder.jpg"
+        src={placeholderImg}
         alt={post.title || "Placeholder"}
         width={400}
         height={225}

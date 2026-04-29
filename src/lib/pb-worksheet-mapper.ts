@@ -1,6 +1,7 @@
 import type { RecordModel } from "pocketbase";
 import { resolveLocalizedImage } from "../utils/assetResolver";
 import { slugify } from "../utils/slugify";
+import wordBlasterPlaceholder from "../assets/images/word-blaster-placeholder.png";
 
 /**
  * Maps a raw PocketBase worksheet record into the normalized post shape
@@ -31,7 +32,7 @@ export async function mapPbRecord(record: RecordModel): Promise<Record<string, a
   }
 
   if (!featureImage && record.lessonType === "word-blaster") {
-    featureImage = "/images/word-blaster-placeholder.png";
+    featureImage = wordBlasterPlaceholder;
   }
 
   if (!featureImage && record.videoUrl) {
