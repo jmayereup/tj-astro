@@ -37,7 +37,64 @@ export async function transformGhostHtml(html: string, postId: string, ghostUrl:
   // Transform audio cards
   newHtml = transformAudioCards(newHtml);
 
+  // Transform file cards
+  newHtml = transformFileCards(newHtml);
+
   return newHtml;
+}
+
+/**
+ * Transforms Ghost file cards into a simple semantic HTML structure with a download button.
+ */
+function transformFileCards(html: string): string {
+  if (!html) return '';
+
+  const fileCardRegex = /<(div|figure)[^>]*class="[^"]*kg-file-card[^"]*"[^>]*>([\s\S]*?<\/a>\s*<\/(div|figure)>)/gi;
+
+  return html.replace(fileCardRegex, (match, tagName, content) => {
+    const hrefMatch = content.match(/<a[^>]*href="([^"]*)"/i);
+    const href = hrefMatch ? hrefMatch[1] : '';
+    
+    const titleMatch = content.match(/<div class="kg-file-card-title">([\s\S]*?)<\/div>/i);
+    const title = titleMatch ? titleMatch[1].trim() : 'Download File';
+
+    const captionMatch = content.match(/<div class="kg-file-card-caption">([\s\S]*?)<\/div>/i);
+    const caption = captionMatch ? captionMatch[1].trim() : '';
+
+    const filenameMatch = content.match(/<(?:div|span) class="kg-file-card-filename">([\s\S]*?)<\/(?:div|span)>/i);
+    const filesizeMatch = content.match(/<(?:div|span) class="kg-file-card-filesize">([\s\S]*?)<\/(?:div|span)>/i);
+    
+    const filename = filenameMatch ? filenameMatch[1].trim() : '';
+    const filesize = filesizeMatch ? filesizeMatch[1].trim() : '';
+    
+    let metadataHtml = '';
+    if (filename || filesize) {
+      const separator = filename && filesize ? ' &bull; ' : '';
+      metadataHtml = `<div class="tj-file-meta">${filename}${separator}${filesize}</div>`;
+    }
+
+    if (!href) return match;
+
+    const captionHtml = caption ? `<div class="tj-file-caption">${caption}</div>` : '';
+
+    return `
+<div class="tj-file-card not-prose">
+  <div class="tj-file-info">
+    <div class="tj-file-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+    </div>
+    <div class="tj-file-details">
+        <span class="tj-file-title">${title}</span>
+        ${captionHtml}
+        ${metadataHtml}
+    </div>
+  </div>
+  <a href="${href}" download class="tj-file-download-btn" target="_blank" rel="noopener noreferrer">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    <span>Download</span>
+  </a>
+</div>`;
+  });
 }
 
 /**

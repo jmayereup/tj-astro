@@ -231,7 +231,7 @@ const finalScripts = Array.from(scriptsToLoad);
   @reference "../../styles/global.css";
   
   /* Standard content padding on mobile */
-  .worksheet-content > *:not(tj-info-gap, tj-chapter-book, tj-quiz-element, tj-speed-review, tj-grammar-hearts, tj-reader, tj-listening, tj-pronunciation) {
+  .worksheet-content > *:not(tj-info-gap, tj-chapter-book, tj-quiz-element, tj-speed-review, tj-grammar-hearts, tj-reader, tj-listening, tj-pronunciation, .tj-audio-card, .tj-file-card) {
     @apply px-4 sm:px-0;
   }
 
@@ -274,7 +274,7 @@ const finalScripts = Array.from(scriptsToLoad);
 
   /* Custom Audio Card Styles */
   .tj-audio-card {
-    @apply my-8 p-4 sm:p-6 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 max-w-2xl mx-auto;
+    @apply my-8 mx-4 sm:mx-auto p-4 sm:p-6 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 max-w-2xl;
     background-image: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.8) 100%);
   }
 
@@ -309,6 +309,40 @@ const finalScripts = Array.from(scriptsToLoad);
 
   .tj-audio-native::-webkit-media-controls-play-button {
     @apply bg-emerald-600 rounded-full text-white;
+  }
+
+  /* Custom File Card Styles */
+  .tj-file-card {
+    @apply my-8 mx-4 sm:mx-auto p-4 sm:p-6 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 max-w-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4;
+    background-image: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.8) 100%);
+  }
+
+  .tj-file-info {
+    @apply flex flex-row items-center gap-4 flex-1 min-w-0 w-full;
+  }
+
+  .tj-file-icon {
+    @apply w-12 h-12 shrink-0 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 shadow-inner;
+  }
+
+  .tj-file-details {
+    @apply flex-1 min-w-0 flex flex-col justify-center;
+  }
+
+  .tj-file-title {
+    @apply block text-base sm:text-lg font-bold text-slate-800 truncate leading-tight;
+  }
+
+  .tj-file-caption {
+    @apply text-sm text-slate-500 mt-1 line-clamp-2;
+  }
+
+  .tj-file-meta {
+    @apply text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider;
+  }
+
+  .tj-file-download-btn {
+    @apply flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors w-full sm:w-auto shrink-0 no-underline shadow-sm;
   }
 
   /* Hide fallbacks once components are defined */
