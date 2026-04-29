@@ -4,6 +4,7 @@ import { Image, getImage } from 'astro:assets';
 import { getAllPosts } from '../../lib/ghost-utils';
 import { resolveLocalizedImage } from '../../utils/assetResolver';
 import { transformGhostHtml } from '../../utils/contentTransformer';
+import { downloadGhostHtmlAssets } from '../../utils/downloadGhostAsset';
 import { transformComponentsToScripts } from '../../utils/transformComponentsToScripts';
 import { transformYouTubeEmbeds } from '../../utils/transformYouTubeEmbeds';
 import { LANGUAGES } from '../../utils/tags';
@@ -100,6 +101,9 @@ if (post.feature_image) {
 }
 
 if (post.html) {
+    // 1. Replace Ghost media URLs (audio, files) with R2 URLs
+    post.html = await downloadGhostHtmlAssets(post.html, post.slug, import.meta.env.GHOST_API_URL);
+    // 2. Optimize images and transform audio/file card HTML structure
     post.html = await transformGhostHtml(post.html, post.slug, import.meta.env.GHOST_API_URL);
     post.html = transformComponentsToScripts(post.html);
     post.html = transformYouTubeEmbeds(post.html);

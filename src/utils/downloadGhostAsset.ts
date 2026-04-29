@@ -46,7 +46,7 @@ function uploadToR2(localPath: string, r2Key: string): string | null {
   const result = spawnSync(
     'npx',
     ['wrangler', 'r2', 'object', 'put', `${R2_BUCKET}/${r2Key}`, '--file', localPath, '--remote'],
-    { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' }
+    { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', env: process.env }
   );
 
   if (result.status !== 0) {
@@ -69,6 +69,13 @@ export async function downloadGhostAsset(url: string, id: string): Promise<strin
   const filename = getFilenameFromUrl(url, id);
   const r2Key = `ghost-assets/${id}/${filename}`;
   const r2Url = `${R2_BASE_URL}/${r2Key}`;
+
+  // Early return for images - they should never be uploaded to R2 during build
+  const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.ico', '.svg'];
+  const ext = filename.split('.').pop()?.toLowerCase();
+  if (ext && IMAGE_EXTS.includes(`.${ext}`)) {
+    return ''; // empty string triggers fallback to original URL
+  }
 
   if (await existsOnR2(r2Url)) {
     return r2Url;
@@ -103,7 +110,7 @@ export async function downloadGhostAsset(url: string, id: string): Promise<strin
 export async function downloadGhostHtmlAssets(html: string, postId: string, ghostUrl: string = ''): Promise<string> {
   if (!html) return '';
 
-  const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif'];
+  const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.ico', '.svg'];
 
   const assetRegex = /(src|data-thumbnail|href)="([^">]+)"/g;
   let match;
@@ -130,6 +137,7 @@ export async function downloadGhostHtmlAssets(html: string, postId: string, ghos
       // Skip images — they are handled by contentTransformer via src/assets
       const ext = url.split('?')[0].toLowerCase().split('.').pop();
       if (ext && IMAGE_EXTS.some(e => e === `.${ext}`)) continue;
+      if (url.includes('/content/images/')) continue;
 
       // Skip already-resolved R2 URLs
       if (url.startsWith(R2_BASE_URL)) continue;

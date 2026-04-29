@@ -20,7 +20,7 @@ const R2_BASE_URL = 'https://files.teacherjake.com';
 // Helper to determine if a file is an image (handled by Astro, saved to src/assets)
 const isImage = (filename) => {
   const ext = path.extname(filename).toLowerCase();
-  return ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif'].includes(ext);
+  return ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.svg', '.ico'].includes(ext);
 };
 
 /**
