@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.3.0",
-    "pagefind": "^1.4.0"
+    "pagefind": "^1.4.0",
+    "wrangler": "^4.86.0"
   }
 }

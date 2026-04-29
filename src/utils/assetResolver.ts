@@ -1,8 +1,11 @@
 import type { ImageMetadata } from 'astro';
 
+const R2_BASE_URL = 'https://files.teacherjake.com';
+
 /**
- * Dynamically resolves a localized asset path to its metadata or public URL.
- * Works for both src/assets (images) and public (audio/files).
+ * Dynamically resolves a localized asset path to its metadata or URL.
+ * Images → resolved from src/assets via Astro glob (optimized, hashed)
+ * Non-images (audio, PDF) → resolved to R2 URL
  */
 const ghostImages = import.meta.glob<{ default: ImageMetadata }>('/src/assets/ghost-assets/**/*.{jpg,jpeg,png,webp,avif,gif}');
 const pbImages = import.meta.glob<{ default: ImageMetadata }>('/src/assets/pocketbase-assets/**/*.{jpg,jpeg,png,webp,avif,gif}');
@@ -10,11 +13,11 @@ const pbImages = import.meta.glob<{ default: ImageMetadata }>('/src/assets/pocke
 export async function resolveLocalizedImage(type: 'gh' | 'pb', id: string, filename: string): Promise<ImageMetadata | string | undefined> {
   const subDir = type === 'gh' ? 'ghost-assets' : 'pocketbase-assets';
   const glob = type === 'gh' ? ghostImages : pbImages;
-  
+
   // Try exact match first
   let seekPath = `/src/assets/${subDir}/${id}/${filename}`;
   let loader = glob[seekPath];
-  
+
   // If no exact match and no extension, try common extensions
   if (!loader && !filename.includes('.')) {
     const extensions = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -27,26 +30,20 @@ export async function resolveLocalizedImage(type: 'gh' | 'pb', id: string, filen
       }
     }
   }
-  
+
   if (loader) {
     const mod = await loader();
     return mod.default;
   }
 
-  // If it's an image but not found in src/assets, return undefined to trigger fallback to remote URL
-  const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif'].some(ext => filename.toLowerCase().endsWith(ext));
-  if (isImage) {
-    return undefined;
-  }
-
-  // Fallback to public folder path if not found in src/assets (e.g. if it's not an image)
-  return `/${subDir}/${id}/${filename}`;
+  // Not found in src/assets — return undefined to trigger fallback to remote URL
+  return undefined;
 }
 
 /**
- * Resolves a non-image asset (audio, pdf) from the public folder.
+ * Resolves a non-image asset (audio, PDF) to its R2 URL.
  */
 export function resolveLocalizedAsset(type: 'gh' | 'pb', id: string, filename: string): string {
   const subDir = type === 'gh' ? 'ghost-assets' : 'pocketbase-assets';
-  return `/${subDir}/${id}/${filename}`;
+  return `${R2_BASE_URL}/${subDir}/${id}/${filename}`;
 }

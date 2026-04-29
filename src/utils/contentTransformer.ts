@@ -14,7 +14,7 @@ export async function transformGhostHtml(html: string, postId: string, ghostUrl:
   
   while ((match = assetRegex.exec(html)) !== null) {
     const originalUrl = match[2];
-    if (!originalUrl || originalUrl.startsWith('/ghost-assets/')) continue;
+    if (!originalUrl || originalUrl.startsWith('/ghost-assets/') || originalUrl.startsWith('https://files.teacherjake.com/')) continue;
     
     // Resolve filename
     const pathname = new URL(originalUrl.startsWith('http') ? originalUrl : `${ghostUrl}${originalUrl}`).pathname;

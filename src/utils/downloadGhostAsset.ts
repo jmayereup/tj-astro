@@ -1,7 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
-// Helper to determine extension from a ghost URL or content type
+const R2_BUCKET = 'files';
+const R2_BASE_URL = 'https://files.teacherjake.com';
+
+// Helper to determine extension from a Ghost URL
 function getFilenameFromUrl(url: string, id: string): string {
   try {
     const urlObj = new URL(url);
@@ -9,7 +13,6 @@ function getFilenameFromUrl(url: string, id: string): string {
     const parts = pathname.split('/');
     let filename = parts[parts.length - 1];
     if (!filename || !filename.includes('.')) {
-      // Try to determine a default based on the URL path instead of just .jpg
       if (pathname.includes('/media/') || pathname.includes('audio')) {
         filename = `${id}.mp3`;
       } else if (pathname.includes('/files/')) {
@@ -24,110 +27,135 @@ function getFilenameFromUrl(url: string, id: string): string {
   }
 }
 
-export async function downloadGhostAsset(url: string, id: string): Promise<string> {
-  if (!url) return '';
-  
-  // Create dir if doesn't exist
-  const dir = path.join(process.cwd(), 'public', 'ghost-assets', id);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  const filename = getFilenameFromUrl(url, id);
-  const destPattern = path.join(dir, filename);
-  const publicUrl = `/ghost-assets/${id}/${filename}`;
-
-  // If already downloaded, skip
-  if (fs.existsSync(destPattern)) {
-    return publicUrl;
-  }
-
+/**
+ * Checks whether a file already exists on R2 by doing a HEAD request.
+ */
+async function existsOnR2(r2Url: string): Promise<boolean> {
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`unexpected response ${response.statusText}`);
-    
-    // We could additionally check the Content-Type header here to rename the file
-    // if the assumed extension above was incorrect, but Ghost URLs usually have the correct extension.
-    
-    const buffer = await response.arrayBuffer();
-    fs.writeFileSync(destPattern, Buffer.from(buffer));
-
-    return publicUrl;
-  } catch (err) {
-    console.error(`Failed to download Ghost asset ${url}:`, err);
-    return ''; // return empty string on failure to trigger fallback UI
+    const res = await fetch(r2Url, { method: 'HEAD' });
+    return res.ok;
+  } catch {
+    return false;
   }
 }
 
-// Replaces all <img src="...">, <audio src="...">, <source src="..."> tags inside an HTML string with local downloaded versions
+/**
+ * Uploads a local file to R2 via wrangler CLI. Returns the R2 URL on success.
+ */
+function uploadToR2(localPath: string, r2Key: string): string | null {
+  const result = spawnSync(
+    'npx',
+    ['wrangler', 'r2', 'object', 'put', `${R2_BUCKET}/${r2Key}`, '--file', localPath],
+    { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' }
+  );
+
+  if (result.status !== 0) {
+    console.error(`R2 upload failed for ${r2Key}: ${result.stderr || result.stdout}`);
+    return null;
+  }
+
+  return `${R2_BASE_URL}/${r2Key}`;
+}
+
+/**
+ * Ensures a single Ghost binary asset exists on R2.
+ * - If already on R2, returns the R2 URL immediately (idempotent).
+ * - Otherwise, fetches from Ghost, uploads to R2, returns the R2 URL.
+ * - Returns empty string on failure (triggers fallback UI in callers).
+ */
+export async function downloadGhostAsset(url: string, id: string): Promise<string> {
+  if (!url) return '';
+
+  const filename = getFilenameFromUrl(url, id);
+  const r2Key = `ghost-assets/${id}/${filename}`;
+  const r2Url = `${R2_BASE_URL}/${r2Key}`;
+
+  if (await existsOnR2(r2Url)) {
+    return r2Url;
+  }
+
+  const tmpDir = path.join(process.cwd(), '.r2-tmp');
+  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+  const tmpFile = path.join(tmpDir, filename);
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+    const buffer = await response.arrayBuffer();
+    fs.writeFileSync(tmpFile, Buffer.from(buffer));
+
+    const uploaded = uploadToR2(tmpFile, r2Key);
+    fs.unlinkSync(tmpFile);
+
+    return uploaded ?? ''; // empty string triggers fallback UI in callers
+  } catch (err) {
+    console.error(`Failed to upload Ghost asset ${url} to R2:`, err);
+    if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+    return '';
+  }
+}
+
+/**
+ * Replaces all asset URLs in a Ghost HTML string with their R2-hosted equivalents.
+ * Images are excluded (handled separately by contentTransformer via src/assets).
+ */
 export async function downloadGhostHtmlAssets(html: string, postId: string, ghostUrl: string = ''): Promise<string> {
   if (!html) return '';
-  
-  // Look for src attributes in img, audio, video, source, and data-thumbnail
-  // Also look for href for ghost file cards.
+
+  const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif'];
+
   const assetRegex = /(src|data-thumbnail|href)="([^">]+)"/g;
   let match;
   let newHtml = html;
-  
-  // We need to keep track of matched URLs so we can replace them sequentially
-  const urlsToDownload = new Set<string>();
-  
+
+  const urlsToProcess = new Set<string>();
+
   while ((match = assetRegex.exec(html)) !== null) {
-      const attr = match[1];
-      let url = match[2];
-      
-      if (url) {
-          // Exclude hrefs that are not ghost assets
-          if (attr === 'href') {
-              if (!url.includes('/content/media/') &&
-                  !url.includes('/content/images/') &&
-                  !url.includes('/content/files/')) {
-                  continue;
-              }
-          }
+    const attr = match[1];
+    let url = match[2];
 
-          // Skip javascript files to prevent 404s on old embedded scripts
-          if (url.endsWith('.js') || url.includes('/scripts/')) {
-              continue;
-          }
-
-          // Skip YouTube embeds as we want to render the iframes natively
-          if (url.includes('youtube.com/') || url.includes('youtu.be/')) {
-              continue;
-          }
-
-          // If relative, prepend ghost URL
-          if (url.startsWith('/')) {
-              url = `${ghostUrl}${url}`;
-          }
-          
-          if (url.startsWith('http')) {
-              urlsToDownload.add(url);
-          }
+    if (url) {
+      if (attr === 'href') {
+        if (!url.includes('/content/media/') &&
+            !url.includes('/content/images/') &&
+            !url.includes('/content/files/')) {
+          continue;
+        }
       }
-  }
-  
-  for (const originalUrl of urlsToDownload) {
-      const localUrl = await downloadGhostAsset(originalUrl, postId);
-      if (localUrl !== originalUrl) {
-          // We need to handle the replacement carefully. 
-          // If the original URL was relative, we need to find it by its relative path in the HTML
-          // but the local library stores it by absolute.
-          
-          // Using a simple split/join on the original URL string found in the HTML is safer 
-          // to preserve query strings that `new URL(originalUrl).pathname` might strip.
-          
-          // Reconstruct the exact string that was in the HTML
-          let relativeOriginal = originalUrl;
-          if (ghostUrl && originalUrl.startsWith(ghostUrl)) {
-              relativeOriginal = originalUrl.substring(ghostUrl.length);
-          }
-          
-          // Replace both absolute and relative variants directly without stripping query params
-          newHtml = newHtml.split(originalUrl).join(localUrl);
-          newHtml = newHtml.split(relativeOriginal).join(localUrl);
+
+      if (url.endsWith('.js') || url.includes('/scripts/')) continue;
+      if (url.includes('youtube.com/') || url.includes('youtu.be/')) continue;
+
+      // Skip images — they are handled by contentTransformer via src/assets
+      const ext = url.split('?')[0].toLowerCase().split('.').pop();
+      if (ext && IMAGE_EXTS.some(e => e === `.${ext}`)) continue;
+
+      // Skip already-resolved R2 URLs
+      if (url.startsWith(R2_BASE_URL)) continue;
+
+      if (url.startsWith('/')) {
+        url = `${ghostUrl}${url}`;
       }
+
+      if (url.startsWith('http')) {
+        urlsToProcess.add(url);
+      }
+    }
   }
-  
+
+  for (const originalUrl of urlsToProcess) {
+    const r2Url = await downloadGhostAsset(originalUrl, postId);
+    if (r2Url && r2Url !== originalUrl) {
+      let relativeOriginal = originalUrl;
+      if (ghostUrl && originalUrl.startsWith(ghostUrl)) {
+        relativeOriginal = originalUrl.substring(ghostUrl.length);
+      }
+
+      newHtml = newHtml.split(originalUrl).join(r2Url);
+      newHtml = newHtml.split(relativeOriginal).join(r2Url);
+    }
+  }
+
   return newHtml;
 }
