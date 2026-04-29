@@ -42,8 +42,16 @@ export async function resolveLocalizedImage(type: 'gh' | 'pb', id: string, filen
 
 /**
  * Resolves a non-image asset (audio, PDF) to its R2 URL.
+ *
+ * For PocketBase assets, pass collectionId so the URL matches the path
+ * PocketBase writes directly: {collectionId}/{recordId}/{filename}
+ *
+ * For Ghost assets, uses the ghost-assets/{id}/{filename} prefix.
  */
-export function resolveLocalizedAsset(type: 'gh' | 'pb', id: string, filename: string): string {
+export function resolveLocalizedAsset(type: 'gh' | 'pb', id: string, filename: string, collectionId?: string): string {
+  if (type === 'pb' && collectionId) {
+    return `${R2_BASE_URL}/${collectionId}/${id}/${filename}`;
+  }
   const subDir = type === 'gh' ? 'ghost-assets' : 'pocketbase-assets';
   return `${R2_BASE_URL}/${subDir}/${id}/${filename}`;
 }

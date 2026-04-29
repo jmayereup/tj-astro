@@ -58,11 +58,14 @@ function uploadToR2(localPath, r2Key) {
 /**
  * Downloads a file and:
  *  - If it's an image → saves to src/assets/ for Astro optimisation
- *  - If it's a non-image → uploads to R2, no local copy kept
+ *  - If it's a non-image → verifies/uploads to R2, no local copy kept
  *
- * Returns the public URL for the file (R2 URL or Astro-hashed src URL).
+ * r2KeyOverride: optional explicit R2 key (used for PocketBase assets where
+ * PocketBase writes directly to R2 using its own collectionId-based path).
+ *
+ * Returns the public URL for the file (R2 URL or src/assets path).
  */
-async function downloadFile(url, id, filename, subDir) {
+async function downloadFile(url, id, filename, subDir, r2KeyOverride = null) {
   const isImg = isImage(filename);
 
   if (isImg) {
@@ -94,17 +97,17 @@ async function downloadFile(url, id, filename, subDir) {
     }
 
   } else {
-    // Non-images (MP3, WAV, PDF, etc.): upload to R2
-    const r2Key = `${subDir}/${id}/${filename}`;
+    // Non-images (MP3, WAV, PDF, etc.): verify/upload to R2
+    const r2Key = r2KeyOverride ?? `${subDir}/${id}/${filename}`;
     const r2Url = `${R2_BASE_URL}/${r2Key}`;
 
-    // Skip if already on R2
+    // Skip if already on R2 (PocketBase writes here directly, or previously uploaded)
     if (await existsOnR2(r2Url)) {
       console.log(`Already on R2: ${r2Key}`);
       return r2Url;
     }
 
-    // Download to a temp file, upload to R2, clean up
+    // Not on R2 yet — download and upload (fallback for Ghost assets or missing PB files)
     const tmpDir = path.join(process.cwd(), '.r2-tmp');
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
     const tmpFile = path.join(tmpDir, filename);
@@ -216,6 +219,10 @@ async function syncGhostAssets() {
 }
 
 // 2. PocketBase Asset Discovery
+// PocketBase is configured to use R2 as its storage backend.
+// Non-image files (audio, PDF) are stored by PocketBase directly at:
+//   {collectionId}/{recordId}/{filename}
+// Images still need to be downloaded to src/assets/ for Astro optimisation.
 async function syncPbAssets() {
   console.log('Syncing PocketBase assets...');
   const browseUrl = `${PB_URL}/api/collections/worksheets/records?perPage=500`;
@@ -226,24 +233,30 @@ async function syncPbAssets() {
     const records = data.items || [];
 
     for (const record of records) {
+      // Images → download to src/assets/ for Astro <Image /> optimisation
       if (record.image) {
         const url = `${PB_URL}/api/files/${record.collectionId}/${record.id}/${record.image}`;
         await downloadFile(url, record.id, record.image, 'pocketbase-assets');
       }
 
+      // Audio → PocketBase writes directly to R2 at {collectionId}/{recordId}/{filename}
+      // Just verify it exists there; upload from PocketBase API as fallback.
       if (record.audioFile) {
         const url = `${PB_URL}/api/files/${record.collectionId}/${record.id}/${record.audioFile}`;
-        await downloadFile(url, record.id, record.audioFile, 'pocketbase-assets');
+        const r2Key = `${record.collectionId}/${record.id}/${record.audioFile}`;
+        await downloadFile(url, record.id, record.audioFile, 'pocketbase-assets', r2Key);
       }
 
+      // Scan content JSON for any other embedded PB file references
       const contentStr = typeof record.content === 'string' ? record.content : JSON.stringify(record.content);
-      const pbFileRegex = /\/api\/files\/([^\/]+)\/([^\/]+)\/([^\s"'><?\n]+)/g;
+      const pbFileRegex = /\/api\/files\/([^\/]+)\/([^\/]+)\/([^\s"'><\?\n]+)/g;
       let match;
       while ((match = pbFileRegex.exec(contentStr)) !== null) {
-        const [fullMatch, , recId, filename] = match;
+        const [fullMatch, collId, recId, filename] = match;
         const cleanFilename = filename.split('?')[0];
         const url = `${PB_URL}${fullMatch.split('?')[0]}`;
-        await downloadFile(url, recId, cleanFilename, 'pocketbase-assets');
+        const r2Key = isImage(cleanFilename) ? null : `${collId}/${recId}/${cleanFilename}`;
+        await downloadFile(url, recId, cleanFilename, 'pocketbase-assets', r2Key);
       }
     }
   } catch (err) {
