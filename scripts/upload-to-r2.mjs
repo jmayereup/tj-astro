@@ -58,7 +58,7 @@ function uploadToR2(localPath, r2Key) {
 
   const result = spawnSync(
     'npx',
-    ['wrangler', 'r2', 'object', 'put', `${R2_BUCKET}/${r2Key}`, '--file', localPath],
+    ['wrangler', 'r2', 'object', 'put', `${R2_BUCKET}/${r2Key}`, '--file', localPath, '--remote'],
     { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' }
   );
 
