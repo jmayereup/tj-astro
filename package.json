@@ -11,9 +11,12 @@
   "dependencies": {
     "@astrojs/partytown": "^2.1.4",
     "@astrojs/sitemap": "^3.7.0",
+    "@aws-sdk/client-s3": "^3.1045.0",
     "@tailwindcss/vite": "^4.2.0",
     "@tryghost/content-api": "^1.12.3",
     "astro": "^5.18.0",
+    "dotenv": "^17.4.2",
+    "mime-types": "^3.0.2",
     "pocketbase": "^0.26.8",
     "tailwindcss": "^4.2.0"
   },
