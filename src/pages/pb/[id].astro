@@ -127,7 +127,7 @@ if (worksheet.image) {
 }
 
 let audioFileUrl = worksheet.audioFile
-  ? resolveLocalizedAsset("pb", worksheet.id, worksheet.audioFile)
+  ? resolveLocalizedAsset("pb", worksheet.id, worksheet.audioFile, worksheet.collectionId)
   : undefined;
 
 const parsedLesson = {
