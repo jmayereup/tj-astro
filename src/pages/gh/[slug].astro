@@ -184,8 +184,10 @@ const finalScripts = Array.from(scriptsToLoad);
   </Fragment>
 
   <article class={`relative prose pt-2 lg:prose-xl max-w-[720px] mx-auto ${tagClassList}`} data-pagefind-body>
+    <h1 class="text-4xl font-extrabold mt-4 mb-6 text-slate-900 tracking-tight px-4 sm:px-0" data-pagefind-meta="title">
+      {post.title}
+    </h1>
     <!-- Hidden metadata for Pagefind search index -->
-    <h1 class="sr-only" data-pagefind-meta="title">{post.title}</h1>
     <p class="sr-only">{post.excerpt || post.custom_excerpt}</p>
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full mb-4 sm:mb-8 not-prose gap-2 sm:gap-0">
       <div class="order-1 sm:order-0 w-full sm:w-auto flex justify-center sm:justify-start">
