@@ -94,23 +94,31 @@ const socialImageURL = optimizedImage
       src="https://scripts.simpleanalyticscdn.com/latest.js"
     ></script>
 
-    <!-- Google AdSense & Consent Management Hook -->
+    <!-- Google AdSense & Dynamic Consent Loader -->
     <script is:inline>
       (() => {
+        window.loadGoogleAds = (requestNPA) => {
+          if (window.adsScriptLoaded) return;
+          window.adsScriptLoaded = true;
+
+          (window.adsbygoogle = window.adsbygoogle || []).requestNonPersonalizedAds = requestNPA;
+
+          const script = document.createElement('script');
+          script.async = true;
+          script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7358177326858018";
+          script.crossOrigin = "anonymous";
+          document.head.appendChild(script);
+        };
+
         const consent = localStorage.getItem("tj_cookie_consent");
-        let requestNPA = 1; // Default to non-personalized ads (privacy-first)
         if (consent) {
           try {
             const parsed = JSON.parse(consent);
-            if (parsed.marketing === true) {
-              requestNPA = 0; // Serve personalized ads if consented
-            }
+            window.loadGoogleAds(parsed.marketing === true ? 0 : 1);
           } catch (e) {}
         }
-        (window.adsbygoogle = window.adsbygoogle || []).requestNonPersonalizedAds = requestNPA;
       })();
     </script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7358177326858018" crossorigin="anonymous"></script>
   </head>
   <body class="bg-white min-h-screen text-slate-800 font-sans flex flex-col">
     <style is:global>

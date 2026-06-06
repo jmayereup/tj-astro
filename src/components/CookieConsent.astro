@@ -76,13 +76,7 @@
   </div>
 </div>
 
-<!-- Tiny Floating Trigger to Adjust Preferences Later -->
-<button id="cookie-consent-trigger" aria-label="Manage Cookies" class="fixed bottom-4 left-4 z-40 bg-white/95 hover:bg-white text-slate-600 hover:text-emerald-800 border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.1)] p-3 rounded-full hover:scale-110 active:scale-95 transition-all opacity-0 pointer-events-none cursor-pointer">
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5.5 h-5.5">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.43l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-  </svg>
-</button>
+<!-- Tiny Floating Trigger is removed to keep layout clean, opened via privacy policy link instead -->
 
 <script is:inline>
   (() => {
@@ -90,7 +84,6 @@
 
     function initConsentBanner() {
       const banner = document.getElementById('cookie-consent-banner');
-      const trigger = document.getElementById('cookie-consent-trigger');
       
       const btnAccept = document.getElementById('btn-cookie-accept');
       const btnDecline = document.getElementById('btn-cookie-decline');
@@ -101,7 +94,7 @@
       const inputAnalytics = document.getElementById('consent-analytics');
       const inputMarketing = document.getElementById('consent-marketing');
 
-      if (!banner || !trigger) return;
+      if (!banner) return;
 
       const savedConsent = localStorage.getItem(STORAGE_KEY);
 
@@ -109,17 +102,20 @@
       function showBanner() {
         banner.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
         banner.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
-        
-        trigger.classList.add('opacity-0', 'pointer-events-none');
-        trigger.classList.remove('opacity-100', 'pointer-events-auto');
       }
 
       function hideBanner() {
         banner.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
         banner.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
-        
-        trigger.classList.remove('opacity-0', 'pointer-events-none');
-        trigger.classList.add('opacity-100', 'pointer-events-auto');
+      }
+
+      function openConsentSettings() {
+        if (details) details.classList.remove('hidden');
+        if (btnSettings) btnSettings.classList.add('hidden');
+        if (btnDecline) btnDecline.classList.add('hidden');
+        if (btnAccept) btnAccept.classList.add('hidden');
+        if (btnSave) btnSave.classList.remove('hidden');
+        showBanner();
       }
 
       function savePreferences(consentObj) {
@@ -129,13 +125,12 @@
         const event = new CustomEvent('cookieConsentChanged', { detail: consentObj });
         document.dispatchEvent(event);
 
-        // Configure Google AdSense Consent if present
-        if (consentObj.marketing) {
-          // Allow personalized ads
-          (window.adsbygoogle = window.adsbygoogle || []).requestNonPersonalizedAds = 0;
-        } else {
-          // Serve non-personalized ads (Google requirement)
-          (window.adsbygoogle = window.adsbygoogle || []).requestNonPersonalizedAds = 1;
+        // Configure Google AdSense Consent and load script dynamically
+        const requestNPA = consentObj.marketing ? 0 : 1;
+        (window.adsbygoogle = window.adsbygoogle || []).requestNonPersonalizedAds = requestNPA;
+
+        if (typeof window.loadGoogleAds === 'function') {
+          window.loadGoogleAds(requestNPA);
         }
         
         hideBanner();
@@ -174,17 +169,14 @@
         });
       }
 
-      if (trigger) {
-        trigger.addEventListener('click', () => {
-          // Open settings view directly when trigger is clicked
-          details.classList.remove('hidden');
-          btnSettings.classList.add('hidden');
-          btnDecline.classList.add('hidden');
-          btnAccept.classList.add('hidden');
-          btnSave.classList.remove('hidden');
-          showBanner();
+      // Add click event listeners to any elements with the class 'open-cookie-settings'
+      const openSettingsLinks = document.querySelectorAll('.open-cookie-settings');
+      openSettingsLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          openConsentSettings();
         });
-      }
+      });
 
       // Check existing consent status
       if (!savedConsent) {
@@ -201,9 +193,6 @@
           } else {
             (window.adsbygoogle = window.adsbygoogle || []).requestNonPersonalizedAds = 1;
           }
-          
-          trigger.classList.remove('opacity-0', 'pointer-events-none');
-          trigger.classList.add('opacity-100', 'pointer-events-auto');
         } catch (e) {
           localStorage.removeItem(STORAGE_KEY);
           setTimeout(showBanner, 800);
