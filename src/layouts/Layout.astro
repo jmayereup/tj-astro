@@ -2,6 +2,7 @@
 import Navigation from "../components/Navigation.astro";
 import { ClientRouter } from "astro:transitions";
 import { getImage } from "astro:assets";
+import CookieConsent from "../components/CookieConsent.astro";
 import "../styles/global.css";
 
 const {
@@ -92,6 +93,24 @@ const socialImageURL = optimizedImage
       type="text/partytown"
       src="https://scripts.simpleanalyticscdn.com/latest.js"
     ></script>
+
+    <!-- Google AdSense & Consent Management Hook -->
+    <script is:inline>
+      (() => {
+        const consent = localStorage.getItem("tj_cookie_consent");
+        let requestNPA = 1; // Default to non-personalized ads (privacy-first)
+        if (consent) {
+          try {
+            const parsed = JSON.parse(consent);
+            if (parsed.marketing === true) {
+              requestNPA = 0; // Serve personalized ads if consented
+            }
+          } catch (e) {}
+        }
+        (window.adsbygoogle = window.adsbygoogle || []).requestNonPersonalizedAds = requestNPA;
+      })();
+    </script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7358177326858018" crossorigin="anonymous"></script>
   </head>
   <body class="bg-white min-h-screen text-slate-800 font-sans flex flex-col">
     <style is:global>
@@ -198,5 +217,6 @@ const socialImageURL = optimizedImage
         }
       });
     </script>
+    <CookieConsent />
   </body>
 </html>
