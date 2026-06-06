@@ -50,11 +50,13 @@ const description = "Welcome to Teacher Jake. Explore our collection of interact
   <div class="max-w-5xl mx-auto px-4 py-4">
     <div class="flex flex-col items-center justify-center mb-8 gap-6">
       <!-- <div class="hidden md:block shrink-0">
-        <Image 
-          src={logoImage} 
-          alt="Teacher Jake's Logo" 
-          class="h-32 w-auto rounded-xl shadow-sm border border-slate-100" 
-        />
+        <a href="/">
+          <Image 
+            src={logoImage} 
+            alt="Teacher Jake's Logo" 
+            class="h-32 w-auto rounded-xl shadow-sm border border-slate-100" 
+          />
+        </a>
       </div> -->
       <div id="intro" class="text-center">
         <h1 class="text-2xl md:text-3xl font-extrabold text-green-800 mb-6 tracking-tight transition-all" transition:name="hero-title">
@@ -71,8 +73,30 @@ const description = "Welcome to Teacher Jake. Explore our collection of interact
       </div>
     </div>
 
-    <!-- Subtle Facebook Group Invitation -->
-    <div class="mb-4 max-w-2xl">
+    <!-- Promo Cards Row -->
+    <div class="grid gap-4 grid-cols-1 md:grid-cols-2 mb-6">
+      <!-- Graded Reading App Card -->
+      <a 
+        href="https://books.teacherjake.com/" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        class="group flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all duration-300"
+      >
+        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </div>
+        <div class="grow">
+          <h3 class="font-bold text-slate-800 text-base">Graded Reading App</h3>
+          <p class="text-slate-500 text-sm">Read longer stories and books graded by CEFR levels.</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+
+      <!-- Facebook Group Invitation -->
       <a 
         href="https://www.facebook.com/profile.php?id=61587726009456" 
         target="_blank" 
