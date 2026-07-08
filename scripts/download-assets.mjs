@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import PocketBase from 'pocketbase';
 
 // Load .env file for local development if it exists
 if (fs.existsSync('.env')) {
@@ -225,12 +226,32 @@ async function syncGhostAssets() {
 // Images still need to be downloaded to src/assets/ for Astro optimisation.
 async function syncPbAssets() {
   console.log('Syncing PocketBase assets...');
-  const browseUrl = `${PB_URL}/api/collections/worksheets/records?perPage=500`;
+  
+  const pb = new PocketBase(PB_URL);
+  pb.autoCancellation(false);
+
+  const pbEmail = process.env.POCKETBASE_EMAIL || process.env.POCKETBASE_ADMIN_EMAIL;
+  const pbPassword = process.env.POCKETBASE_PASSWORD || process.env.POCKETBASE_ADMIN_PASSWORD;
+
+  if (pbEmail && pbPassword) {
+    try {
+      // Authenticate as superuser/admin to bypass restricted API rules
+      await pb.collection('_superusers').authWithPassword(pbEmail, pbPassword);
+      console.log('Authenticated with PocketBase');
+    } catch (e) {
+      try {
+        await pb.admins.authWithPassword(pbEmail, pbPassword);
+        console.log('Authenticated with PocketBase (admin fallback)');
+      } catch (oldErr) {
+        console.error('PocketBase authentication failed in sync script:', e.message);
+      }
+    }
+  }
 
   try {
-    const res = await fetch(browseUrl);
-    const data = await res.json();
-    const records = data.items || [];
+    const records = await pb.collection('worksheets').getFullList({
+      requestKey: null,
+    });
 
     for (const record of records) {
       // Images → download to src/assets/ for Astro <Image /> optimisation
