@@ -1,13 +1,14 @@
 import PocketBase from 'pocketbase';
+import { POCKETBASE_EMAIL, POCKETBASE_PASSWORD, PUBLIC_POCKETBASE_URL } from './env';
 
 // You will need to add this to your .env file
-export const pb = new PocketBase(import.meta.env.PUBLIC_POCKETBASE_URL || 'https://blog.teacherjake.com');
+export const pb = new PocketBase(PUBLIC_POCKETBASE_URL);
 
 // Disable auto-cancellation to avoid fetch errors during build
 pb.autoCancellation(false);
 
-const pbEmail = import.meta.env.POCKETBASE_EMAIL || import.meta.env.POCKETBASE_ADMIN_EMAIL;
-const pbPassword = import.meta.env.POCKETBASE_PASSWORD || import.meta.env.POCKETBASE_ADMIN_PASSWORD;
+const pbEmail = POCKETBASE_EMAIL;
+const pbPassword = POCKETBASE_PASSWORD;
 
 if (pbEmail && pbPassword) {
   try {
@@ -19,7 +20,12 @@ if (pbEmail && pbPassword) {
       // Fallback for older PocketBase versions (< 0.23)
       await pb.admins.authWithPassword(pbEmail, pbPassword);
     } catch (oldErr) {
-      console.error('PocketBase initialization: authentication failed:', e);
+      try {
+        // Fallback for regular users (e.g. with isAdmin flag)
+        await pb.collection('users').authWithPassword(pbEmail, pbPassword);
+      } catch (userErr) {
+        console.error('PocketBase initialization: authentication failed:', userErr);
+      }
     }
   }
 }

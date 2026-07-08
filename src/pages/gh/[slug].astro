@@ -13,6 +13,7 @@ import PostTags from '../../components/PostTags.astro';
 import Recommendations from '../../components/Recommendations.astro';
 import { pb } from '../../lib/pocketbase';
 import { mapPbRecord } from '../../lib/pb-worksheet-mapper';
+import { GHOST_API_URL } from '../../lib/env';
 
 export async function getStaticPaths() {
   const ghostPosts = await getAllPosts({ include: ['tags'] });
@@ -76,7 +77,7 @@ const post = { ...initialPost };
 
 let featureImageObj: any = undefined;
 if (post.feature_image) {
-    const featureImageUrl = new URL(post.feature_image.startsWith('http') ? post.feature_image : `${import.meta.env.GHOST_API_URL}${post.feature_image}`);
+    const featureImageUrl = new URL(post.feature_image.startsWith('http') ? post.feature_image : `${GHOST_API_URL}${post.feature_image}`);
     let filename = featureImageUrl.pathname.split('/').pop();
     // If the pathname has no extension (e.g. Unsplash: /photo-1234?fm=jpg&...),
     // derive the extension from the `fm` query param — matching download-assets.mjs logic.
@@ -102,9 +103,9 @@ if (post.feature_image) {
 
 if (post.html) {
     // 1. Replace Ghost media URLs (audio, files) with R2 URLs
-    post.html = await downloadGhostHtmlAssets(post.html, post.slug, import.meta.env.GHOST_API_URL);
+    post.html = await downloadGhostHtmlAssets(post.html, post.slug, GHOST_API_URL);
     // 2. Optimize images and transform audio/file card HTML structure
-    post.html = await transformGhostHtml(post.html, post.slug, import.meta.env.GHOST_API_URL);
+    post.html = await transformGhostHtml(post.html, post.slug, GHOST_API_URL);
     post.html = transformComponentsToScripts(post.html);
     post.html = transformYouTubeEmbeds(post.html);
 }

@@ -243,7 +243,12 @@ async function syncPbAssets() {
         await pb.admins.authWithPassword(pbEmail, pbPassword);
         console.log('Authenticated with PocketBase (admin fallback)');
       } catch (oldErr) {
-        console.error('PocketBase authentication failed in sync script:', e.message);
+        try {
+          await pb.collection('users').authWithPassword(pbEmail, pbPassword);
+          console.log('Authenticated with PocketBase (users collection fallback)');
+        } catch (userErr) {
+          console.error('PocketBase authentication failed in sync script:', userErr.message);
+        }
       }
     }
   }
