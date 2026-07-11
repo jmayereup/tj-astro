@@ -44,6 +44,30 @@ export async function getStaticPaths() {
     const worksheets = await pb.collection("worksheets").getFullList();
     const normalizedPb = await Promise.all(worksheets.map(mapPbRecord));
 
+    // Lesson types that render via htmlCompiled + external web components.
+    const newLessonTypes = [
+      "lbl-reader",
+      "grammar-hearts",
+      "listening",
+      "speed-review",
+      "chapter-book",
+      "pronunciation",
+      "quiz-element",
+      "information-gap",
+    ];
+
+    // Warn about new lesson types missing htmlCompiled so data issues surface clearly.
+    for (const ws of worksheets) {
+      if (
+        newLessonTypes.includes(ws.lessonType || "") &&
+        !ws.htmlCompiled
+      ) {
+        console.warn(
+          `[pb/[id]] worksheet ${ws.id} ("${ws.title}") has lessonType "${ws.lessonType}" but no htmlCompiled — page will render empty.`
+        );
+      }
+    }
+
     const allNormalized = [...normalizedGhost, ...normalizedPb];
 
     return worksheets.flatMap((worksheet, idx) => {
@@ -102,10 +126,36 @@ const { worksheet, mappedWorksheet, recommendations = [] } = Astro.props as {
 
 // mappedWorksheet was pre-computed in getStaticPaths — no second mapPbRecord call needed.
 
-let content =
-  typeof worksheet.content === "string"
-    ? JSON.parse(worksheet.content || "{}")
-    : worksheet.content || {};
+// Lesson types that render via pre-compiled htmlCompiled + external web components.
+// Their `content` field is not JSON (often raw HTML/text), so it must NOT be JSON.parsed.
+const newLessonTypes = [
+  "lbl-reader",
+  "grammar-hearts",
+  "listening",
+  "speed-review",
+  "chapter-book",
+  "pronunciation",
+  "quiz-element",
+  "information-gap",
+];
+const isNewLessonType = newLessonTypes.includes(worksheet.lessonType || "");
+
+let content: any;
+if (isNewLessonType) {
+  // New lesson types render htmlCompiled only; `content` is unused at render time.
+  content = {};
+} else if (typeof worksheet.content === "string") {
+  try {
+    content = JSON.parse(worksheet.content || "{}");
+  } catch (e) {
+    console.warn(
+      `[pb/[id]] worksheet ${worksheet.id} ("${worksheet.title}") has unparseable content field — falling back to {}.`
+    );
+    content = {};
+  }
+} else {
+  content = worksheet.content || {};
+}
 
 // Transform content at build time (optimizes images)
 content = await transformPbContent(content, worksheet.id);
@@ -162,22 +212,6 @@ const lessonTypeToComponentMap: Record<string, string> = {
   'listening': 'tj-listening',
   'pronunciation': 'tj-pronunciation'
 };
-
-// Lesson types that use pre-compiled htmlCompiled + external scripts.teacherjake.com components.
-// "worksheet" and "information-gap" (legacy) are intentionally excluded — they use the
-// tj-pocketbase-worksheet web component path instead.
-const newLessonTypes = [
-  "lbl-reader",
-  "grammar-hearts",
-  "listening",
-  "speed-review",
-  "chapter-book",
-  "pronunciation",
-  "quiz-element",
-  "information-gap"
-];
-
-const isNewLessonType = newLessonTypes.includes(worksheet.lessonType || "");
 
 const scriptsToLoad = new Set<string>();
 
