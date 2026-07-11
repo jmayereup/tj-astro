@@ -1,7 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { Image, getImage } from "astro:assets";
-import { pb } from "../../lib/pocketbase";
+import { getPb } from "../../lib/pocketbase";
 import {
   resolveLocalizedAsset,
   resolveLocalizedImage,
@@ -15,6 +15,23 @@ import { getAllPosts } from "../../lib/ghost-utils";
 import { mapPbRecord } from "../../lib/pb-worksheet-mapper";
 
 export async function getStaticPaths() {
+  // Defined inside getStaticPaths so Vite's prerender bundler captures them
+  const categoryGroups = [
+    ["bilingual", "lbl-reader", "blb"],
+    ["focused-reading", "chapter-book", "book"],
+    ["information-gap", "pronunciation", "speaking"],
+    ["listening"],
+    ["grammar-game", "word-blaster", "grammar-hearts", "speed-review", "quiz-element", "quiz"],
+    ["worksheet"]
+  ];
+
+  function getCategoryGroup(cat: string): string[] {
+    cat = cat.toLowerCase();
+    for (const group of categoryGroups) {
+      if (group.includes(cat)) return group;
+    }
+    return [cat];
+  }
   try {
     const ghostPosts = await getAllPosts({ include: ["tags"] });
     const normalizedGhost = ghostPosts.map((p) => ({
@@ -23,6 +40,7 @@ export async function getStaticPaths() {
       source: "ghost",
     }));
 
+    const pb = await getPb();
     const worksheets = await pb.collection("worksheets").getFullList();
     const normalizedPb = await Promise.all(worksheets.map(mapPbRecord));
 
@@ -42,24 +60,9 @@ export async function getStaticPaths() {
 
           let sameCategory = false;
           if (category) {
-            if (
-              category === "bilingual" ||
-              category === "lbl-reader" ||
-              category === "blb"
-            ) {
-              sameCategory = pTags.some((t: string) =>
-                ["bilingual", "lbl-reader", "blb"].includes(t)
-              );
-            } else {
-              const normalizedCategory =
-                category === "information-gap"
-                  ? "speaking"
-                  : category === "focused-reading"
-                  ? "book"
-                  : category;
-              sameCategory =
-                pTags.includes(normalizedCategory) || p.lessonType === category;
-            }
+            const group = getCategoryGroup(category);
+            sameCategory = pTags.some((t: string) => group.includes(t)) ||
+                           (p.lessonType && group.includes(p.lessonType.toLowerCase()));
           }
 
           return sameLang && sameCategory;
@@ -85,7 +88,7 @@ export async function getStaticPaths() {
     });
   } catch (error) {
     console.warn(
-      "Failed to fetch from Pocketbase. Make sure your Pocketbase server is running."
+      "Failed to fetch from Pocketbase. Make sure your Pocketbase server is running.", error
     );
     return [];
   }
@@ -138,6 +141,63 @@ const parsedLesson = {
 };
 
 const currentLang = (worksheet.language || "English").toLowerCase();
+const componentScriptMap: Record<string, string> = {
+  'tj-info-gap': 'https://scripts.teacherjake.com/tj-info-gap.js',
+  'tj-chapter-book': 'https://scripts.teacherjake.com/tj-chapter-book.js',
+  'tj-quiz-element': 'https://scripts.teacherjake.com/tj-quiz-element.js',
+  'tj-speed-review': 'https://scripts.teacherjake.com/tj-speed-review.js',
+  'tj-grammar-hearts': 'https://scripts.teacherjake.com/tj-grammar-hearts.js',
+  'tj-reader': 'https://scripts.teacherjake.com/tj-reader.js',
+  'tj-listening': 'https://scripts.teacherjake.com/tj-listening.js',
+  'tj-pronunciation': 'https://scripts.teacherjake.com/tj-pronunciation.js'
+};
+
+const lessonTypeToComponentMap: Record<string, string> = {
+  'information-gap': 'tj-info-gap',
+  'chapter-book': 'tj-chapter-book',
+  'quiz-element': 'tj-quiz-element',
+  'speed-review': 'tj-speed-review',
+  'grammar-hearts': 'tj-grammar-hearts',
+  'lbl-reader': 'tj-reader',
+  'listening': 'tj-listening',
+  'pronunciation': 'tj-pronunciation'
+};
+
+// Lesson types that use pre-compiled htmlCompiled + external scripts.teacherjake.com components.
+// "worksheet" and "information-gap" (legacy) are intentionally excluded — they use the
+// tj-pocketbase-worksheet web component path instead.
+const newLessonTypes = [
+  "lbl-reader",
+  "grammar-hearts",
+  "listening",
+  "speed-review",
+  "chapter-book",
+  "pronunciation",
+  "quiz-element",
+  "information-gap"
+];
+
+const isNewLessonType = newLessonTypes.includes(worksheet.lessonType || "");
+
+const scriptsToLoad = new Set<string>();
+
+// 1. Detect components by lessonType
+const componentName = lessonTypeToComponentMap[worksheet.lessonType || ""];
+if (componentName && componentScriptMap[componentName]) {
+  scriptsToLoad.add(componentScriptMap[componentName]);
+}
+
+// 2. Detect additional components embedded in htmlCompiled (only for new lesson types)
+// Skipped for "worksheet" type to prevent picking up stale tj-pocketbase-worksheet references.
+if (isNewLessonType && worksheet.htmlCompiled) {
+  for (const [tag, scriptUrl] of Object.entries(componentScriptMap)) {
+    if (worksheet.htmlCompiled.includes(`<${tag}`)) {
+      scriptsToLoad.add(scriptUrl);
+    }
+  }
+}
+
+const finalScripts = Array.from(scriptsToLoad);
 const contentFallbackHtml = renderContentAsHtml(content);
 ---
 
@@ -149,6 +209,13 @@ const contentFallbackHtml = renderContentAsHtml(content);
   image={imageObj || imageUrl}
   article={true}
 >
+  {isNewLessonType && (
+    <Fragment slot="head">
+      {finalScripts.map(scriptUrl => (
+        <script is:inline type="module" src={scriptUrl} defer crossorigin="anonymous"></script>
+      ))}
+    </Fragment>
+  )}
   <div id="webview-warning" class="hidden mb-6 mx-auto max-w-6xl">
     <div
       class="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500"
@@ -280,34 +347,42 @@ const contentFallbackHtml = renderContentAsHtml(content);
       )
     }
 
-    <!-- Web Component Wrapper -->
-    <tj-pocketbase-worksheet class="justify-around">
-      <script type="application/json" set:html={JSON.stringify(parsedLesson)}
-      ></script>
-    </tj-pocketbase-worksheet>
+    {
+      isNewLessonType ? (
+        <div class="worksheet-content" set:html={worksheet.htmlCompiled || ""} />
+      ) : (
+        <>
+          <!-- Web Component Wrapper -->
+          <tj-pocketbase-worksheet class="justify-around">
+            <script type="application/json" set:html={JSON.stringify(parsedLesson).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')}
+            ></script>
+          </tj-pocketbase-worksheet>
 
-    <!-- Fallback Content (Server Rendered) -->
-    <div class="tj-fallback p-4 sm:p-8">
-      <h1 class="text-3xl font-extrabold text-blue-600 mb-4">
-        {worksheet.title}
-      </h1>
-      {
-        worksheet.seo && (
-          <p class="text-slate-600 italic mb-6 text-lg">{worksheet.seo}</p>
-        )
-      }
-      {
-        !worksheet.seo && worksheet.description && (
-          <p class="text-slate-600 italic mb-6 text-lg">
-            {worksheet.description}
-          </p>
-        )
-      }
+          <!-- Fallback Content (Server Rendered) -->
+          <div class="tj-fallback p-4 sm:p-8">
+            <h1 class="text-3xl font-extrabold text-blue-600 mb-4">
+              {worksheet.title}
+            </h1>
+            {
+              worksheet.seo && (
+                <p class="text-slate-600 italic mb-6 text-lg">{worksheet.seo}</p>
+              )
+            }
+            {
+              !worksheet.seo && worksheet.description && (
+                <p class="text-slate-600 italic mb-6 text-lg">
+                  {worksheet.description}
+                </p>
+              )
+            }
 
-      <div class="fallback-json-content prose-slate prose-lg max-w-none">
-        <Fragment set:html={contentFallbackHtml} />
-      </div>
-    </div>
+            <div class="fallback-json-content prose-slate prose-lg max-w-none">
+              <Fragment set:html={contentFallbackHtml} />
+            </div>
+          </div>
+        </>
+      )
+    }
 
     {
       recommendations.length > 0 && (
@@ -317,6 +392,128 @@ const contentFallbackHtml = renderContentAsHtml(content);
   </article>
 </Layout>
 <style is:global>
+  @reference "../../styles/global.css";
+  
+  /* Standard content padding on mobile */
+  .worksheet-content > *:not(tj-info-gap, tj-chapter-book, tj-quiz-element, tj-speed-review, tj-grammar-hearts, tj-reader, tj-listening, tj-pronunciation, .tj-audio-card, .tj-file-card) {
+    @apply px-4 sm:px-0;
+  }
+
+  /* Add prose styling to make HTML output look good */
+  .worksheet-content :where(h1) {
+    @apply text-4xl font-extrabold mt-12 mb-6 text-slate-900 tracking-tight;
+  }
+  .worksheet-content :where(h2) {
+    @apply text-3xl font-bold mt-10 mb-4 text-slate-800 tracking-tight;
+  }
+  .worksheet-content :where(h3) {
+    @apply text-2xl font-bold mt-8 mb-4 text-slate-800;
+  }
+  .worksheet-content :where(h4) {
+    @apply text-xl font-bold mt-6 mb-2 text-slate-800;
+  }
+  .worksheet-content :where(h5) {
+    @apply text-lg font-bold mt-4 mb-2 text-slate-800;
+  }
+  .worksheet-content :where(h6) {
+    @apply text-base font-bold mt-4 mb-2 text-slate-800 uppercase tracking-wide;
+  }
+  .worksheet-content :where(p) {
+    @apply mb-4 text-slate-700 leading-relaxed;
+  }
+  .worksheet-content :where(ul) {
+    @apply list-disc list-inside mb-4 text-slate-700 space-y-2;
+  }
+  .worksheet-content :where(a) {
+    @apply text-blue-600 underline underline-offset-2 hover:text-blue-800;
+  }
+  .worksheet-content :is(tj-info-gap, tj-chapter-book, tj-quiz-element, tj-speed-review, tj-grammar-hearts, tj-reader, tj-listening, tj-pronunciation) {
+    @apply my-6 block w-full mx-auto;
+  }
+
+  /* Reduce top margin for the very first heading in the content */
+  .worksheet-content > :first-child:is(h1, h2, h3, h4, h5, h6) {
+    @apply mt-2;
+  }
+
+  /* Custom Audio Card Styles */
+  .tj-audio-card {
+    @apply my-8 mx-4 sm:mx-auto p-4 sm:p-6 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 max-w-2xl;
+    background-image: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.8) 100%);
+  }
+
+  .tj-audio-info {
+    @apply flex items-center gap-4 mb-4;
+  }
+
+  .tj-audio-thumbnail {
+    @apply w-12 h-12 sm:w-16 sm:h-16 rounded-xl object-cover shadow-sm bg-slate-100;
+  }
+
+  .tj-audio-placeholder {
+    @apply w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 shadow-inner;
+  }
+
+  .tj-audio-meta {
+    @apply flex-1 min-w-0;
+  }
+
+  .tj-audio-title {
+    @apply block text-base sm:text-lg font-bold text-slate-800 truncate leading-tight;
+  }
+
+  .tj-audio-native {
+    @apply w-full h-10 mt-1;
+    /* Basic customization for supported browsers */
+  }
+
+  .tj-audio-native::-webkit-media-controls-panel {
+    @apply bg-slate-50;
+  }
+
+  .tj-audio-native::-webkit-media-controls-play-button {
+    @apply bg-emerald-600 rounded-full text-white;
+  }
+
+  /* Custom File Card Styles */
+  .tj-file-card {
+    @apply my-8 mx-4 sm:mx-auto p-4 sm:p-6 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 max-w-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4;
+    background-image: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.8) 100%);
+  }
+
+  .tj-file-info {
+    @apply flex flex-row items-center gap-4 flex-1 min-w-0 w-full;
+  }
+
+  .tj-file-icon {
+    @apply w-12 h-12 shrink-0 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 shadow-inner;
+  }
+
+  .tj-file-details {
+    @apply flex-1 min-w-0 flex flex-col justify-center;
+  }
+
+  .tj-file-title {
+    @apply block text-base sm:text-lg font-bold text-slate-800 truncate leading-tight;
+  }
+
+  .tj-file-caption {
+    @apply text-sm text-slate-500 mt-1 line-clamp-2;
+  }
+
+  .tj-file-meta {
+    @apply text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider;
+  }
+
+  .tj-file-download-btn {
+    @apply flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors w-full sm:w-auto shrink-0 no-underline shadow-sm;
+  }
+
+  /* Hide fallbacks once components are defined */
+  :is(tj-info-gap, tj-chapter-book, tj-quiz-element, tj-speed-review, tj-grammar-hearts, tj-reader, tj-listening, tj-pronunciation):defined + .tj-fallback {
+    display: none;
+  }
+
   tj-pocketbase-worksheet {
     display: flex;
     width: 100%;
@@ -330,15 +527,9 @@ const contentFallbackHtml = renderContentAsHtml(content);
   }
 </style>
 
-<!-- This shouldn't be needed as styles are inlined during build-->
-<!-- <link
-  rel="stylesheet"
-  href="https://language-learning-worksheets.pages.dev/wc/language-learning-worksheets.css"
-/> -->
-
 <script is:inline>
   // Ensure the script is only loaded when component is used
-  if (!customElements.get("tj-pocketbase-worksheet")) {
+  if (document.querySelector("tj-pocketbase-worksheet") && !customElements.get("tj-pocketbase-worksheet")) {
     const script = document.createElement("script");
     script.src =
       "https://language-learning-worksheets.pages.dev/wc/tj-pocketbase-worksheet.es.js";

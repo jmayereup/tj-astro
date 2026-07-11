@@ -1,7 +1,8 @@
 {
   "mcpServers": {
-    "openrouter": {
-      "url": "https://mcp.openrouter.ai/mcp"
+    "Astro docs": {
+      "type": "http",
+      "url": "https://mcp.docs.astro.build/mcp"
     }
   }
 }

@@ -2,7 +2,7 @@
 import ListingPageLayout from "../../layouts/ListingPageLayout.astro";
 import { getAllPosts } from "../../lib/ghost-utils";
 import { LANGUAGES } from "../../utils/tags";
-import { pb } from "../../lib/pocketbase";
+import { getPb } from "../../lib/pocketbase";
 import { mapPbRecord } from "../../lib/pb-worksheet-mapper";
 
 
@@ -12,6 +12,7 @@ export async function getStaticPaths({ paginate }: any) {
   // Fetch all PocketBase worksheets once and normalize
   let allPbWorksheets: any[] = [];
   try {
+    const pb = await getPb();
     const records = await pb.collection("worksheets").getFullList({ sort: "-created" });
     allPbWorksheets = await Promise.all(records.map(mapPbRecord));
   } catch (e) {

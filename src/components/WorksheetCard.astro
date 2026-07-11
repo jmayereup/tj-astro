@@ -45,6 +45,13 @@ if (isPb) {
   else if (lessonType === "information-gap") activityType = "INFORMATION GAP";
   else if (lessonType === "focused-reading" || lessonType === "focused reader") activityType = "FOCUSED READER";
   else if (lessonType === "word-blaster") activityType = "GAME";
+  else if (lessonType === "lbl-reader") activityType = "LINE-BY-LINE STORY";
+  else if (lessonType === "grammar-hearts") activityType = "GRAMMAR HEARTS";
+  else if (lessonType === "listening") activityType = "LISTENING";
+  else if (lessonType === "speed-review") activityType = "SPEED REVIEW";
+  else if (lessonType === "chapter-book") activityType = "CHAPTER STORY";
+  else if (lessonType === "pronunciation") activityType = "PRONUNCIATION";
+  else if (lessonType === "quiz-element") activityType = "QUIZ";
 } else {
   if (allCleanTags.includes("lbl-reader")) activityType = "LINE-BY-LINE STORY";
   else if (allCleanTags.includes("book") && allCleanTags.includes("blb")) activityType = "BILINGUAL STORY";

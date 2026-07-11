@@ -238,13 +238,21 @@ export enum WorksheetsLessonTypeOptions {
 	"worksheet" = "worksheet",
 	"information-gap" = "information-gap",
 	"focused-reading" = "focused-reading",
+	"lbl-reader" = "lbl-reader",
+	"grammar-hearts" = "grammar-hearts",
+	"listening" = "listening",
+	"speed-review" = "speed-review",
+	"chapter-book" = "chapter-book",
+	"pronunciation" = "pronunciation",
+	"quiz-element" = "quiz-element",
 }
 export type WorksheetsRecord<Tcontent = unknown> = {
 	audioFile?: FileNameString
 	content?: null | Tcontent
 	created: IsoAutoDateString
 	creatorId?: string
-	id: string
+	htmlCompiled?: HTMLString
+	id: RecordIdString
 	image?: FileNameString
 	isVideoLesson?: boolean
 	language?: WorksheetsLanguageOptions

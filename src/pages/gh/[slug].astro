@@ -11,7 +11,7 @@ import { LANGUAGES } from '../../utils/tags';
 import ShareButtons from '../../components/ShareButtons.astro';
 import PostTags from '../../components/PostTags.astro';
 import Recommendations from '../../components/Recommendations.astro';
-import { pb } from '../../lib/pocketbase';
+import { getPb } from '../../lib/pocketbase';
 import { mapPbRecord } from '../../lib/pb-worksheet-mapper';
 import { GHOST_API_URL } from '../../lib/env';
 
@@ -21,6 +21,7 @@ export async function getStaticPaths() {
   // Fetch and normalize PB posts once for cross-source recommendations
   let allPbWorksheets: any[] = [];
   try {
+    const pb = await getPb();
     const records = await pb.collection('worksheets').getFullList({ sort: '-created' });
     allPbWorksheets = await Promise.all(records.map(mapPbRecord));
   } catch (e) {
@@ -128,7 +129,7 @@ for (const lang of supportedLangs) {
 // Map of component tags to their script URLs
 const componentScriptMap: Record<string, string> = {
     'tj-info-gap': 'https://scripts.teacherjake.com/tj-info-gap.js',
-    'tj-chapter-book': 'https://worksheets.teacherjake.com/wc/tj-chapter-book.es.js',
+    'tj-chapter-book': 'https://scripts.teacherjake.com/tj-chapter-book.js',
     'tj-quiz-element': 'https://scripts.teacherjake.com/tj-quiz-element.js',
     'tj-speed-review': 'https://scripts.teacherjake.com/tj-speed-review.js',
     'tj-grammar-hearts': 'https://scripts.teacherjake.com/tj-grammar-hearts.js',

@@ -2,7 +2,7 @@
 import ListingPageLayout from '../../../../layouts/ListingPageLayout.astro';
 import { getAllPosts } from '../../../../lib/ghost-utils';
 import { LANGUAGES, CATEGORY_FILTERS, WORKSHEET_TOPICS } from '../../../../utils/tags';
-import { pb } from '../../../../lib/pocketbase';
+import { getPb } from '../../../../lib/pocketbase';
 import { mapPbRecord } from '../../../../lib/pb-worksheet-mapper';
 import TopicFilter from '../../../../components/TopicFilter.astro';
 
@@ -13,6 +13,7 @@ export async function getStaticPaths({ paginate }: any) {
   // Fetch all PocketBase worksheets once and normalize
   let allPbWorksheets: any[] = [];
   try {
+    const pb = await getPb();
     const records = await pb.collection('worksheets').getFullList({ sort: '-created' });
     allPbWorksheets = await Promise.all(records.map(mapPbRecord));
   } catch (e) {
@@ -52,16 +53,36 @@ export async function getStaticPaths({ paginate }: any) {
 
       // 2. PocketBase Content
       // Check if this is a main lessonType category
-      const isLessonType = ['speaking', 'worksheet', 'book'].includes(category.id);
+      const isLessonType = ['speaking', 'worksheet', 'book', 'bilingual', 'grammar-game', 'listening'].includes(category.id);
       
       if (isLessonType) {
-        const typeMatch =
-          category.id === 'speaking' ? 'information-gap' :
-          category.id === 'book' ? 'focused-reading' : 'worksheet';
-        
-        let matchingPb = allPbWorksheets.filter(
-          (ws) => ws.language === lang && ws.lessonType === typeMatch
-        );
+        let matchingPb: any[] = [];
+        if (category.id === 'speaking') {
+          matchingPb = allPbWorksheets.filter(
+            (ws) => ws.language === lang && ['information-gap', 'pronunciation'].includes(ws.lessonType)
+          );
+        } else if (category.id === 'book') {
+          matchingPb = allPbWorksheets.filter(
+            (ws) => ws.language === lang && ['focused-reading', 'chapter-book'].includes(ws.lessonType)
+          );
+        } else if (category.id === 'bilingual') {
+          matchingPb = allPbWorksheets.filter(
+            (ws) => ws.language === lang && ['lbl-reader'].includes(ws.lessonType)
+          );
+        } else if (category.id === 'grammar-game') {
+          matchingPb = allPbWorksheets.filter(
+            (ws) => ws.language === lang && ['word-blaster', 'grammar-hearts', 'speed-review', 'quiz-element'].includes(ws.lessonType)
+          );
+        } else if (category.id === 'listening') {
+          matchingPb = allPbWorksheets.filter(
+            (ws) => ws.language === lang && ['listening'].includes(ws.lessonType)
+          );
+        } else {
+          // 'worksheet'
+          matchingPb = allPbWorksheets.filter(
+            (ws) => ws.language === lang && ws.lessonType === 'worksheet'
+          );
+        }
 
         // For speaking, also include PB items tagged with pronunciation
         if (category.id === 'speaking') {

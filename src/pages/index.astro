@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import logoImage from '../assets/tj-logo-big-brighter.png';
 import { getAllPosts } from "../lib/ghost-utils";
-import { pb } from "../lib/pocketbase";
+import { getPb } from "../lib/pocketbase";
 import { LANGUAGES } from "../utils/tags";
 import WorksheetCard from "../components/WorksheetCard.astro";
 import { mapPbRecord } from "../lib/pb-worksheet-mapper";
@@ -11,6 +11,7 @@ import { mapPbRecord } from "../lib/pb-worksheet-mapper";
 let recentPosts: any[] = [];
 try {
   // Fetch Pocketbase worksheets
+  const pb = await getPb();
   const records = await pb
     .collection("worksheets")
     .getFullList({ sort: "-created" });
