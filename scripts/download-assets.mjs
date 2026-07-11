@@ -1,3 +1,17 @@
+/**
+ * download-assets.mjs
+ *
+ * Syncs media assets to local src/assets/ (images) and Cloudflare R2 (audio/files).
+ *
+ * Ghost section: Ghost content is now frozen (src/data/ghost-posts.json).
+ * All Ghost images are already committed to src/assets/ghost-assets/ and all
+ * Ghost audio/files are already on R2. The syncGhostAssets() call below is a
+ * fast no-op on every normal build (it checks before downloading).
+ *
+ * ----- If you shut down Ghost permanently -----
+ * Remove the `await syncGhostAssets()` call at the bottom of this file,
+ * and optionally delete the entire syncGhostAssets() function.
+ */
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -159,8 +173,10 @@ function getFilenameFromUrl(url, id) {
 }
 
 // 1. Ghost Asset Discovery
+// NOTE: This is now a fast no-op on every normal build — all Ghost assets are
+// already committed to src/assets/ghost-assets/ or uploaded to R2.
 async function syncGhostAssets() {
-  if (!GHOST_URL || !GHOST_KEY) return console.warn('Ghost credentials missing, skipping sync.');
+  if (!GHOST_URL || !GHOST_KEY) return console.warn('Ghost credentials missing, skipping Ghost asset sync (expected if Ghost is frozen).');
 
   console.log('Syncing Ghost assets...');
   let page = 1;
