@@ -71,7 +71,7 @@ export async function getStaticPaths({ paginate }: any) {
           );
         } else if (category.id === 'grammar-game') {
           matchingPb = allPbWorksheets.filter(
-            (ws) => ws.language === lang && ['word-blaster', 'grammar-hearts', 'speed-review', 'quiz-element'].includes(ws.lessonType)
+            (ws) => ws.language === lang && ['word-blaster', 'grammar-hearts', 'speed-review'].includes(ws.lessonType)
           );
         } else if (category.id === 'listening') {
           matchingPb = allPbWorksheets.filter(
