@@ -238,9 +238,9 @@ const finalScripts = Array.from(scriptsToLoad);
 <style is:global>
   @reference "../../styles/global.css";
   
-  /* Standard content padding on mobile */
+  /* Standard content padding on mobile and desktop */
   .worksheet-content > *:not(tj-info-gap, tj-chapter-book, tj-quiz-element, tj-speed-review, tj-grammar-hearts, tj-reader, tj-listening, tj-pronunciation, .tj-audio-card, .tj-file-card) {
-    @apply px-4 sm:px-0;
+    @apply px-4 sm:px-8 lg:px-12;
   }
 
   /* Add prose styling to make Ghost html output look good */
@@ -266,7 +266,13 @@ const finalScripts = Array.from(scriptsToLoad);
     @apply mb-4 text-slate-700 leading-relaxed;
   }
   .worksheet-content :where(ul) {
-    @apply list-disc list-inside mb-4 text-slate-700 space-y-2;
+    @apply list-disc list-outside pl-6 mb-4 text-slate-700 space-y-2;
+  }
+  .worksheet-content :where(ol) {
+    @apply list-decimal list-outside pl-6 mb-4 text-slate-700 space-y-2;
+  }
+  .worksheet-content :where(blockquote) {
+    @apply border-l-4 border-slate-200 pl-4 my-4 italic text-slate-600;
   }
   .worksheet-content :where(a) {
     @apply text-blue-600 underline underline-offset-2 hover:text-blue-800;

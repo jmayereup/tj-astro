@@ -14,7 +14,7 @@
     "@aws-sdk/client-s3": "^3.1045.0",
     "@tailwindcss/vite": "^4.2.0",
     "@tryghost/content-api": "^1.12.3",
-    "astro": "^7.0.7",
+    "astro": "^7.0.9",
     "dotenv": "^17.4.2",
     "mime-types": "^3.0.2",
     "pocketbase": "^0.26.8",

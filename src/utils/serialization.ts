@@ -29,7 +29,7 @@ export function renderContentAsHtml(obj: any, depth = 0): string {
   if (Array.isArray(obj)) {
     if (obj.length === 0) return '';
     const items = obj.map(item => `<li class="mb-2">${renderContentAsHtml(item, depth + 1)}</li>`).join('');
-    return `<ul class="list-disc list-inside ml-4 mb-4 text-slate-700">${items}</ul>`;
+    return `<ul class="list-disc list-outside pl-5 mb-4 text-slate-700">${items}</ul>`;
   }
 
   // Handle objects
