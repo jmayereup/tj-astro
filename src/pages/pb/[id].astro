@@ -357,29 +357,29 @@ const contentFallbackHtml = renderContentAsHtml(content);
         y2="18"></line>
     </svg>
   </button>
-    {
-      imageObj ? (
-        <Image
-          src={imageObj}
-          alt=""
-          data-pagefind-meta="image[src]"
-          class="hidden"
-          width={1200}
-          height={630}
-        />
-      ) : (
-        imageUrl && (
-          <img
-            src={imageUrl}
-            alt=""
+    {imageObj ? (
+        <div class="w-full max-h-[400px] bg-slate-50 sm:rounded-2xl sm:shadow-md mx-auto my-4 sm:my-8 overflow-hidden flex justify-center">
+          <Image 
+            src={imageObj} 
+            alt={worksheet.title || ""} 
+            width={1200}
+            height={630}
             data-pagefind-meta="image[src]"
-            class="hidden"
+            class="max-h-[400px] object-contain" 
+          />
+        </div>
+    ) : imageUrl && (
+        <div class="w-full max-h-[400px] bg-slate-50 sm:rounded-2xl sm:shadow-md mx-auto my-4 sm:my-8 overflow-hidden flex justify-center">
+          <img 
+            src={imageUrl} 
+            alt={worksheet.title || ""} 
             width="1200"
             height="630"
+            data-pagefind-meta="image[src]"
+            class="max-h-[400px] object-contain" 
           />
-        )
-      )
-    }
+        </div>
+    )}
 
     {
       isNewLessonType ? (
