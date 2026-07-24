@@ -77,7 +77,9 @@ flowchart TD
   - Interacts with PocketBase collections (`worksheets`, `topics`, `levels`, `tags`).
   - Uses typed interface mapping generated in `pocketbase-types.ts`.
 - **Environment Management (`src/lib/env.ts`)**:
-  - Validates required runtime and build environment variables (`GHOST_API_URL`, `GHOST_CONTENT_API_KEY`, `POCKETBASE_URL`, R2 storage keys).
+  - Centralizes configuration for build and runtime environments (`GHOST_API_URL`, `GHOST_CONTENT_API_KEY`, `PUBLIC_POCKETBASE_URL`, `PUBLIC_SUBMISSION_URL`).
+  - `.env` files are used strictly for **local development**. Production build variables and secrets must be configured directly in **Cloudflare Pages** settings (`Settings -> Environment Variables / Secrets`).
+  - `PUBLIC_SUBMISSION_URL` intentionally defaults to an empty string (`''`) to prevent security/privacy leaks when repository forks or clones are built without explicitly configured credentials.
 
 ### 3.2 Asset Resolution & Cloud Storage Pipeline
 - **Asset Resolvers (`src/utils/assetResolver.ts`, `src/utils/downloadAsset.ts`, `src/utils/downloadGhostAsset.ts`)**:
@@ -93,10 +95,13 @@ Custom web components (from `tj-components`) provide rich interactive features i
 
 - **Transformer Pipeline (`src/utils/contentTransformer.ts`)**:
   - Replaces raw HTML embeds, standardizes YouTube embeds (`transformYouTubeEmbeds.ts`), and parses custom components.
-- **Script Injection (`src/utils/transformComponentsToScripts.ts`)**:
+- **Script Injection & `submission-url` Transformation (`src/utils/transformComponentsToScripts.ts`)**:
   - Converts component configurations into property-injected JS scripts (`element.config = data`), avoiding DOM attribute bloat and quote escaping issues (see `component-data-instructions.md`).
+  - Automatically injects or replaces `submission-url="..."` on all custom web component tags (`<tj-*>`), provided `PUBLIC_SUBMISSION_URL` is set in the environment.
 - **Markdown-like Parsing (`tj-quiz-element`)**:
   - Custom parser splits `---` section dividers for cloze tests, vocabulary matching, reading passages, and audio blocks.
+
+
 
 ---
 

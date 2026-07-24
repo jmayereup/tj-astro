@@ -13,6 +13,8 @@ import PostTags from "../../components/PostTags.astro";
 import Recommendations from "../../components/Recommendations.astro";
 import { getAllPosts } from "../../lib/ghost-utils";
 import { mapPbRecord } from "../../lib/pb-worksheet-mapper";
+import { transformComponentsToScripts } from "../../utils/transformComponentsToScripts";
+import { PUBLIC_SUBMISSION_URL } from "../../lib/env";
 
 export async function getStaticPaths() {
   // Defined inside getStaticPaths so Vite's prerender bundler captures them
@@ -247,6 +249,10 @@ const hideTopImage = [
 ].includes(lessonTypeLower) || pbTagsLower.some((t: string) => 
   ["worksheet", "worksheets", "focused-reading", "focused reader", "lbl-reader"].includes(t)
 );
+let compiledHtml = worksheet.htmlCompiled || "";
+if (isNewLessonType && compiledHtml) {
+  compiledHtml = transformComponentsToScripts(compiledHtml);
+}
 ---
 
 <Layout
@@ -400,16 +406,17 @@ const hideTopImage = [
 
     {
       isNewLessonType ? (
-        <div class="worksheet-content" set:html={worksheet.htmlCompiled || ""} />
+        <div class="worksheet-content" set:html={compiledHtml} />
       ) : (
         <>
           <!-- Web Component Wrapper -->
-          <tj-pocketbase-worksheet class="justify-around">
+          <tj-pocketbase-worksheet class="justify-around" submission-url={PUBLIC_SUBMISSION_URL || undefined}>
             <script type="application/json" set:html={JSON.stringify(parsedLesson).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')}
             ></script>
           </tj-pocketbase-worksheet>
 
           <!-- Fallback Content (Server Rendered) -->
+
           <div class="tj-fallback p-4 sm:p-8">
             <h1 class="text-3xl font-extrabold text-blue-600 mb-4">
               {worksheet.title}
