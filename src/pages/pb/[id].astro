@@ -233,6 +233,20 @@ if (isNewLessonType && worksheet.htmlCompiled) {
 
 const finalScripts = Array.from(scriptsToLoad);
 const contentFallbackHtml = renderContentAsHtml(content);
+
+const lessonTypeLower = (worksheet.lessonType || "").toLowerCase();
+const pbTagsLower = (worksheet.tags || []).map((t: any) => 
+  (typeof t === "string" ? t : t.name || t.slug || "").toLowerCase()
+);
+const hideTopImage = [
+  "worksheet", 
+  "worksheets", 
+  "focused-reading", 
+  "focused reader", 
+  "lbl-reader"
+].includes(lessonTypeLower) || pbTagsLower.some((t: string) => 
+  ["worksheet", "worksheets", "focused-reading", "focused reader", "lbl-reader"].includes(t)
+);
 ---
 
 <Layout
@@ -357,7 +371,7 @@ const contentFallbackHtml = renderContentAsHtml(content);
         y2="18"></line>
     </svg>
   </button>
-    {imageObj ? (
+    {!hideTopImage && (imageObj ? (
         <div class="w-full max-h-[400px] bg-slate-50 sm:rounded-2xl sm:shadow-md mx-auto my-4 sm:my-8 overflow-hidden flex justify-center">
           <Image 
             src={imageObj} 
@@ -379,6 +393,9 @@ const contentFallbackHtml = renderContentAsHtml(content);
             class="max-h-[400px] object-contain" 
           />
         </div>
+    ))}
+    {hideTopImage && (imageUrl || imageObj) && (
+      <img src={imageUrl || (typeof imageObj === "string" ? imageObj : imageObj.src)} alt="" class="hidden" data-pagefind-meta="image[src]" />
     )}
 
     {

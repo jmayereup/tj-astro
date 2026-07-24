@@ -170,6 +170,14 @@ for (const tagSlug of tagSlugs) {
 }
 
 const finalScripts = Array.from(scriptsToLoad);
+
+const tagSlugsLower = post.tags?.map((t: any) => 
+  (t.slug || t.name || "").toLowerCase()
+) || [];
+
+const hideTopImage = tagSlugsLower.some((t: string) => 
+  ["worksheet", "worksheets", "focused-reading", "focused reader", "lbl-reader"].includes(t)
+);
 ---
 <Layout 
   title={`${post.title} | Teacher Jake Worksheets`} 
@@ -205,7 +213,7 @@ const finalScripts = Array.from(scriptsToLoad);
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
     </div>
-    {featureImageObj ? (
+    {!hideTopImage && (featureImageObj ? (
         <div class="w-full max-h-[400px] bg-slate-50 sm:rounded-2xl sm:shadow-md mx-auto my-4 sm:my-8 overflow-hidden flex justify-center">
           <Image 
             src={featureImageObj} 
@@ -227,6 +235,9 @@ const finalScripts = Array.from(scriptsToLoad);
             class="max-h-[400px] object-contain" 
           />
         </div>
+    ))}
+    {hideTopImage && (post.feature_image || featureImageObj) && (
+      <img src={post.feature_image || (typeof featureImageObj === "string" ? featureImageObj : featureImageObj.src)} alt="" class="hidden" data-pagefind-meta="image[src]" />
     )}
     
     <div class="worksheet-content" set:html={post.html} />
