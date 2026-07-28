@@ -18,9 +18,18 @@ const { nextUrl } = Astro.props;
       <span class="text-sm font-medium">Loading more…</span>
     </div>
   ) : (
-    <p id="scroll-end" class="text-slate-400 text-sm font-medium tracking-wide">
-      ✦ You've seen it all ✦
-    </p>
+    <div id="scroll-end" class="flex flex-col items-center gap-2">
+      <p class="text-slate-400 text-sm font-medium tracking-wide">✦ You've seen it all ✦</p>
+      <div class="flex flex-wrap items-center justify-center gap-3 text-xs font-semibold text-emerald-700">
+        <a href="/privacy" class="hover:underline">Privacy Policy</a>
+        <span class="text-slate-300">•</span>
+        <a href="/terms" class="hover:underline">Terms of Service</a>
+        <span class="text-slate-300">•</span>
+        <a href="/ai-disclaimer" class="hover:underline">AI Disclaimer</a>
+        <span class="text-slate-300">•</span>
+        <a href="/contact" class="hover:underline">Contact</a>
+      </div>
+    </div>
   )}
 </div>
 
@@ -104,11 +113,23 @@ const { nextUrl } = Astro.props;
           // All pages exhausted — show end message
           if (loader) loader.style.display = "none";
           // Remove any existing end messages to avoid duplicates
-          sentinel!.querySelectorAll("p").forEach((el) => el.remove());
-          const p = document.createElement("p");
-          p.textContent = "✦ You've seen it all ✦";
-          p.className = "text-slate-400 text-sm font-medium tracking-wide";
-          sentinel!.appendChild(p);
+          sentinel!.querySelectorAll("#scroll-end, p").forEach((el) => el.remove());
+          const endDiv = document.createElement("div");
+          endDiv.id = "scroll-end";
+          endDiv.className = "flex flex-col items-center gap-2";
+          endDiv.innerHTML = `
+            <p class="text-slate-400 text-sm font-medium tracking-wide">✦ You've seen it all ✦</p>
+            <div class="flex flex-wrap items-center justify-center gap-3 text-xs font-semibold text-emerald-700">
+              <a href="/privacy" class="hover:underline">Privacy Policy</a>
+              <span class="text-slate-300">•</span>
+              <a href="/terms" class="hover:underline">Terms of Service</a>
+              <span class="text-slate-300">•</span>
+              <a href="/ai-disclaimer" class="hover:underline">AI Disclaimer</a>
+              <span class="text-slate-300">•</span>
+              <a href="/contact" class="hover:underline">Contact</a>
+            </div>
+          `;
+          sentinel!.appendChild(endDiv);
           observer.disconnect();
         }
       } catch (err) {
