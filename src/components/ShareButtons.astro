@@ -84,7 +84,16 @@ const {
     containers.forEach(container => {
       const title = container.getAttribute('data-share-title');
       const propUrl = container.getAttribute('data-share-url');
-      const url = propUrl || window.location.href;
+      const rawUrl = propUrl || window.location.href;
+
+      let url = rawUrl;
+      try {
+        const parsedUrl = new URL(rawUrl, window.location.origin);
+        parsedUrl.searchParams.set('openExternalBrowser', '1');
+        url = parsedUrl.toString();
+      } catch (err) {
+        console.error('Error formatting share URL:', err);
+      }
 
       const encodedUrl = encodeURIComponent(url);
 
