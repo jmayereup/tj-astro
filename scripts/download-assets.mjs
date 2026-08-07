@@ -7,10 +7,6 @@
  * All Ghost images are already committed to src/assets/ghost-assets/ and all
  * Ghost audio/files are already on R2. The syncGhostAssets() call below is a
  * fast no-op on every normal build (it checks before downloading).
- *
- * ----- If you shut down Ghost permanently -----
- * Remove the `await syncGhostAssets()` call at the bottom of this file,
- * and optionally delete the entire syncGhostAssets() function.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,12 +21,32 @@ if (fs.existsSync('.env')) {
 // Environment variables
 const GHOST_URL = process.env.GHOST_API_URL || '';
 const GHOST_KEY = process.env.GHOST_CONTENT_API_KEY || '';
-const PB_URL = process.env.PUBLIC_POCKETBASE_URL || 'https://blog.teacherjake.com';
+const PB_URL = process.env.PUBLIC_POCKETBASE_URL || 'https://pb.teacherjake.com';
 
 const SRC_ASSETS_DIR = path.join(process.cwd(), 'src', 'assets');
 
 const R2_BUCKET = 'files';
 const R2_BASE_URL = 'https://files.teacherjake.com';
+const CONCURRENCY_LIMIT = 15;
+
+/**
+ * Concurrency helper for running tasks in parallel with a max limit.
+ */
+async function mapConcurrent(items, limit, fn) {
+  const results = [];
+  const executing = new Set();
+  for (const item of items) {
+    const p = Promise.resolve().then(() => fn(item));
+    results.push(p);
+    executing.add(p);
+    const clean = () => executing.delete(p);
+    p.then(clean, clean);
+    if (executing.size >= limit) {
+      await Promise.race(executing);
+    }
+  }
+  return Promise.all(results);
+}
 
 // Helper to determine if a file is an image (handled by Astro, saved to src/assets)
 const isImage = (filename) => {
@@ -38,14 +54,21 @@ const isImage = (filename) => {
   return ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.svg', '.ico'].includes(ext);
 };
 
+const r2Cache = new Set();
+
 /**
  * Checks whether a file already exists on R2 by doing a HEAD request.
  * Returns true if the file is there (HTTP 200 or 304).
  */
 async function existsOnR2(r2Url) {
+  if (r2Cache.has(r2Url)) return true;
   try {
     const res = await fetch(r2Url, { method: 'HEAD' });
-    return res.ok;
+    if (res.ok) {
+      r2Cache.add(r2Url);
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -86,14 +109,19 @@ async function downloadFile(url, id, filename, subDir, r2KeyOverride = null) {
   if (isImg) {
     // Images: save to src/assets for Astro's <Image /> optimisation
     const destPath = path.join(SRC_ASSETS_DIR, subDir, id, filename);
+    const missingMarker = `${destPath}.404`;
 
-    if (fs.existsSync(destPath)) return destPath;
+    if (fs.existsSync(destPath) || fs.existsSync(missingMarker)) return destPath;
 
     const dir = path.dirname(destPath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
     try {
       const res = await fetch(url);
+      if (res.status === 404) {
+        fs.writeFileSync(missingMarker, '');
+        return null;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const contentType = res.headers.get('content-type') || '';
@@ -118,7 +146,6 @@ async function downloadFile(url, id, filename, subDir, r2KeyOverride = null) {
 
     // Skip if already on R2 (PocketBase writes here directly, or previously uploaded)
     if (await existsOnR2(r2Url)) {
-      console.log(`Already on R2: ${r2Key}`);
       return r2Url;
     }
 
@@ -173,8 +200,6 @@ function getFilenameFromUrl(url, id) {
 }
 
 // 1. Ghost Asset Discovery
-// NOTE: This is now a fast no-op on every normal build — all Ghost assets are
-// already committed to src/assets/ghost-assets/ or uploaded to R2.
 async function syncGhostAssets() {
   if (!GHOST_URL || !GHOST_KEY) return console.warn('Ghost credentials missing, skipping Ghost asset sync (expected if Ghost is frozen).');
 
@@ -194,7 +219,7 @@ async function syncGhostAssets() {
 
       console.log(`Syncing Ghost assets (page ${page}/${totalPages})...`);
 
-      for (const post of posts) {
+      await mapConcurrent(posts, CONCURRENCY_LIMIT, async (post) => {
         try {
           if (post.feature_image) {
             const filename = getFilenameFromUrl(post.feature_image, post.slug);
@@ -204,6 +229,7 @@ async function syncGhostAssets() {
           if (post.html) {
             const assetRegex = /(src|data-thumbnail|href)="([^">]+)"/g;
             let match;
+            const assetTasks = [];
             while ((match = assetRegex.exec(post.html)) !== null) {
               const attr = match[1];
               let url = match[2];
@@ -217,15 +243,19 @@ async function syncGhostAssets() {
                 if (url.startsWith('/')) url = `${GHOST_URL}${url}`;
                 if (url.startsWith('http')) {
                   const filename = getFilenameFromUrl(url, post.slug);
-                  await downloadFile(url, post.slug, filename, 'ghost-assets');
+                  assetTasks.push(downloadFile(url, post.slug, filename, 'ghost-assets'));
                 }
               }
+            }
+            if (assetTasks.length > 0) {
+              await Promise.all(assetTasks);
             }
           }
         } catch (postErr) {
           console.error(`Failed to sync assets for Ghost post ${post.slug}:`, postErr.message);
         }
-      }
+      });
+
       page++;
     } while (page <= totalPages);
 
@@ -236,57 +266,33 @@ async function syncGhostAssets() {
 }
 
 // 2. PocketBase Asset Discovery
-// PocketBase is configured to use R2 as its storage backend.
-// Non-image files (audio, PDF) are stored by PocketBase directly at:
-//   {collectionId}/{recordId}/{filename}
-// Images still need to be downloaded to src/assets/ for Astro optimisation.
 async function syncPbAssets() {
   console.log('Syncing PocketBase assets...');
   
   const pb = new PocketBase(PB_URL);
   pb.autoCancellation(false);
 
-  const pbEmail = process.env.POCKETBASE_EMAIL || process.env.POCKETBASE_ADMIN_EMAIL;
-  const pbPassword = process.env.POCKETBASE_PASSWORD || process.env.POCKETBASE_ADMIN_PASSWORD;
-
-  if (pbEmail && pbPassword) {
-    try {
-      // Authenticate as superuser/admin to bypass restricted API rules
-      await pb.collection('_superusers').authWithPassword(pbEmail, pbPassword);
-      console.log('Authenticated with PocketBase');
-    } catch (e) {
-      try {
-        await pb.admins.authWithPassword(pbEmail, pbPassword);
-        console.log('Authenticated with PocketBase (admin fallback)');
-      } catch (oldErr) {
-        try {
-          await pb.collection('users').authWithPassword(pbEmail, pbPassword);
-          console.log('Authenticated with PocketBase (users collection fallback)');
-        } catch (userErr) {
-          console.error('PocketBase authentication failed in sync script:', userErr.message);
-        }
-      }
-    }
-  }
-
   try {
     const records = await pb.collection('worksheets').getFullList({
       requestKey: null,
     });
 
-    for (const record of records) {
+    console.log(`Processing ${records.length} PocketBase worksheet records with concurrency ${CONCURRENCY_LIMIT}...`);
+
+    await mapConcurrent(records, CONCURRENCY_LIMIT, async (record) => {
+      const tasks = [];
+
       // Images → download to src/assets/ for Astro <Image /> optimisation
       if (record.image) {
         const url = `${PB_URL}/api/files/${record.collectionId}/${record.id}/${record.image}`;
-        await downloadFile(url, record.id, record.image, 'pocketbase-assets');
+        tasks.push(downloadFile(url, record.id, record.image, 'pocketbase-assets'));
       }
 
       // Audio → PocketBase writes directly to R2 at {collectionId}/{recordId}/{filename}
-      // Just verify it exists there; upload from PocketBase API as fallback.
       if (record.audioFile) {
         const url = `${PB_URL}/api/files/${record.collectionId}/${record.id}/${record.audioFile}`;
         const r2Key = `${record.collectionId}/${record.id}/${record.audioFile}`;
-        await downloadFile(url, record.id, record.audioFile, 'pocketbase-assets', r2Key);
+        tasks.push(downloadFile(url, record.id, record.audioFile, 'pocketbase-assets', r2Key));
       }
 
       // Scan content JSON for any other embedded PB file references
@@ -298,9 +304,13 @@ async function syncPbAssets() {
         const cleanFilename = filename.split('?')[0];
         const url = `${PB_URL}${fullMatch.split('?')[0]}`;
         const r2Key = isImage(cleanFilename) ? null : `${collId}/${recId}/${cleanFilename}`;
-        await downloadFile(url, recId, cleanFilename, 'pocketbase-assets', r2Key);
+        tasks.push(downloadFile(url, recId, cleanFilename, 'pocketbase-assets', r2Key));
       }
-    }
+
+      if (tasks.length > 0) {
+        await Promise.all(tasks);
+      }
+    });
   } catch (err) {
     console.error('PocketBase sync failed:', err);
   }
@@ -312,11 +322,13 @@ if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true });
 
 // Main execution
 (async () => {
+  const startTime = Date.now();
   await syncGhostAssets();
   await syncPbAssets();
 
   // Clean up temp dir
   if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true });
 
-  console.log('Asset sync complete.');
+  const durationSec = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log(`Asset sync complete in ${durationSec}s.`);
 })();

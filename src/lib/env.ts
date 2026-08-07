@@ -26,7 +26,7 @@ export const POCKETBASE_PASSWORD =
 export const PUBLIC_POCKETBASE_URL = 
   (isNode ? process.env.PUBLIC_POCKETBASE_URL : undefined) || 
   metaEnv?.PUBLIC_POCKETBASE_URL || 
-  'https://blog.teacherjake.com';
+  'https://pb.teacherjake.com';
 
 export const PUBLIC_SUBMISSION_URL = 
   (isNode ? process.env.PUBLIC_SUBMISSION_URL : undefined) || 
