@@ -82,13 +82,24 @@ flowchart TD
   - `PUBLIC_SUBMISSION_URL` intentionally defaults to an empty string (`''`) to prevent security/privacy leaks when repository forks or clones are built without explicitly configured credentials.
 
 ### 3.2 Asset Resolution & Cloud Storage Pipeline
-- **Asset Resolvers (`src/utils/assetResolver.ts`, `src/utils/downloadAsset.ts`, `src/utils/downloadGhostAsset.ts`)**:
-  - Intercepts remote asset URLs (images, audio clips, PDF attachments) embedded inside Ghost/PocketBase content.
-  - Downloads and normalizes assets during the build process to eliminate runtime third-party asset dependencies.
-- **Build Scripts (`scripts/`)**:
-  - `download-assets.mjs`: Master script run prior to `astro build` to download required media assets locally.
-  - `freeze-ghost.mjs`: Snapshots Ghost post data to local JSON.
-  - `upload-to-r2.mjs` & `upload-pbc-assets.mjs`: Syncs processed assets to Cloudflare R2 object storage.
+
+#### Media Serving Architecture & Zero-Droplet Rule
+To protect the DigitalOcean Droplet (`pb.teacherjake.com`) from media bandwidth and load, **NO public media assets (images, audio MP3s, PDF attachments) are served directly from `pb.teacherjake.com` in production**. `pb.teacherjake.com` functions strictly as a build-time API database.
+
+1. **Images (`.jpg`, `.png`, `.webp`, `.avif`, `.svg`)**:
+   - Downloaded from Cloudflare R2 to `src/assets/pocketbase-assets/` (or `ghost-assets/`) by `scripts/download-assets.mjs` during static build.
+   - Astro processes, compresses, and bundles them into static output (`dist/_astro/`), served directly from **Cloudflare Pages** edge CDN.
+   - **Fallback Rule**: If an image is not bundled locally, all fallback URLs resolve directly to Cloudflare R2 (`https://files.teacherjake.com/{collectionId}/{recordId}/{filename}`).
+
+2. **Audio Clips (`.mp3`) & Attachments (`.pdf`)**:
+   - Stored directly in Cloudflare R2 object storage (`files` bucket).
+   - Resolved via `resolveLocalizedAsset()` in `src/utils/assetResolver.ts` to `https://files.teacherjake.com/{collectionId}/{recordId}/{filename}`.
+   - Served directly from Cloudflare R2 edge network.
+
+#### Build-Time Asset Sync (`scripts/download-assets.mjs`)
+- Executed automatically before `astro build`.
+- Concurrently syncs PocketBase worksheet records (`CONCURRENCY_LIMIT = 15`) and downloads image files from R2 into `src/assets/`.
+- Maintains an in-memory R2 cache and local `.404` markers to skip duplicate or missing file requests, reducing sync time to ~8s.
 
 ### 3.3 Content Transformation & Web Component Integration
 Custom web components (from `tj-components`) provide rich interactive features in lessons and posts.

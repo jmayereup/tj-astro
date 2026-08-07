@@ -284,13 +284,13 @@ async function syncPbAssets() {
 
       // Images → download to src/assets/ for Astro <Image /> optimisation
       if (record.image) {
-        const url = `${PB_URL}/api/files/${record.collectionId}/${record.id}/${record.image}`;
+        const url = `${R2_BASE_URL}/${record.collectionId}/${record.id}/${record.image}`;
         tasks.push(downloadFile(url, record.id, record.image, 'pocketbase-assets'));
       }
 
       // Audio → PocketBase writes directly to R2 at {collectionId}/{recordId}/{filename}
       if (record.audioFile) {
-        const url = `${PB_URL}/api/files/${record.collectionId}/${record.id}/${record.audioFile}`;
+        const url = `${R2_BASE_URL}/${record.collectionId}/${record.id}/${record.audioFile}`;
         const r2Key = `${record.collectionId}/${record.id}/${record.audioFile}`;
         tasks.push(downloadFile(url, record.id, record.audioFile, 'pocketbase-assets', r2Key));
       }
@@ -302,7 +302,7 @@ async function syncPbAssets() {
       while ((match = pbFileRegex.exec(contentStr)) !== null) {
         const [fullMatch, collId, recId, filename] = match;
         const cleanFilename = filename.split('?')[0];
-        const url = `${PB_URL}${fullMatch.split('?')[0]}`;
+        const url = `${R2_BASE_URL}/${collId}/${recId}/${cleanFilename}`;
         const r2Key = isImage(cleanFilename) ? null : `${collId}/${recId}/${cleanFilename}`;
         tasks.push(downloadFile(url, recId, cleanFilename, 'pocketbase-assets', r2Key));
       }

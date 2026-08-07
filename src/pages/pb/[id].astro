@@ -177,7 +177,7 @@ if (worksheet.image) {
   } else if (resolved) {
     imageUrl = resolved;
   } else {
-    imageUrl = `${import.meta.env.PUBLIC_POCKETBASE_URL}/api/files/worksheets/${worksheet.id}/${worksheet.image}`;
+    imageUrl = `https://files.teacherjake.com/${worksheet.collectionId || 'worksheets'}/${worksheet.id}/${worksheet.image}`;
   }
 }
 
