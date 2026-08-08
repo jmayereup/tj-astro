@@ -43,7 +43,8 @@ export async function getStaticPaths() {
     }));
 
     const pb = await getPb();
-    const worksheets = await pb.collection("worksheets").getFullList();
+    const records = await pb.collection("worksheets").getFullList({ filter: "notForBlog != true" });
+    const worksheets = records.filter((w) => !w.notForBlog);
     const normalizedPb = await Promise.all(worksheets.map(mapPbRecord));
 
     // Lesson types that render via htmlCompiled + external web components.

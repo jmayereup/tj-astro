@@ -14,8 +14,8 @@ export async function getStaticPaths({ paginate }: any) {
   let allPbWorksheets: any[] = [];
   try {
     const pb = await getPb();
-    const records = await pb.collection('worksheets').getFullList({ sort: '-created' });
-    allPbWorksheets = await Promise.all(records.map(mapPbRecord));
+    const records = await pb.collection('worksheets').getFullList({ sort: '-created', filter: 'notForBlog != true' });
+    allPbWorksheets = await Promise.all(records.filter((r) => !r.notForBlog).map(mapPbRecord));
   } catch (e) {
     console.warn("Failed to fetch PocketBase worksheets for tag pages", e);
   }

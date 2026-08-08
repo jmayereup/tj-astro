@@ -14,9 +14,9 @@ try {
   const pb = await getPb();
   const records = await pb
     .collection("worksheets")
-    .getFullList({ sort: "-created" });
+    .getFullList({ sort: "-created", filter: "notForBlog != true" });
   
-  const pbWorksheets = (await Promise.all(records.map(mapPbRecord)))
+  const pbWorksheets = (await Promise.all(records.filter((r) => !r.notForBlog).map(mapPbRecord)))
     .filter((post) => post.language === "english");
 
   // Fetch Ghost posts filtered by English tag

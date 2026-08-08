@@ -273,9 +273,11 @@ async function syncPbAssets() {
   pb.autoCancellation(false);
 
   try {
-    const records = await pb.collection('worksheets').getFullList({
+    const rawRecords = await pb.collection('worksheets').getFullList({
       requestKey: null,
+      filter: 'notForBlog != true',
     });
+    const records = rawRecords.filter(r => !r.notForBlog);
 
     console.log(`Processing ${records.length} PocketBase worksheet records with concurrency ${CONCURRENCY_LIMIT}...`);
 
