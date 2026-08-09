@@ -15,6 +15,7 @@ export enum Collections {
 	Lessons = "lessons",
 	PictureDescriptions = "pictureDescriptions",
 	TeamGames = "teamGames",
+	TjComponentsTeacherInfo = "tj_components_teacher_info",
 	Users = "users",
 	Worksheets = "worksheets",
 }
@@ -186,6 +187,15 @@ export type TeamGamesRecord = {
 	updated: IsoAutoDateString
 }
 
+export type TjComponentsTeacherInfoRecord = {
+	created: IsoAutoDateString
+	id: string
+	name?: string
+	school?: string
+	updated: IsoAutoDateString
+	url?: string
+}
+
 export type UsersRecord<TbeginnerLessons = unknown, TpersonalWordBank = unknown, Tplaylist = unknown> = {
 	avatar?: FileNameString
 	beginnerLessons?: null | TbeginnerLessons
@@ -276,6 +286,7 @@ export type AiLessonsResponse<Tcontent = unknown, Texpand = unknown> = Required<
 export type LessonsResponse<Twordbank = unknown, Texpand = unknown> = Required<LessonsRecord<Twordbank>> & BaseSystemFields<Texpand>
 export type PictureDescriptionsResponse<Tcontent = unknown, Texpand = unknown> = Required<PictureDescriptionsRecord<Tcontent>> & BaseSystemFields<Texpand>
 export type TeamGamesResponse<Texpand = unknown> = Required<TeamGamesRecord> & BaseSystemFields<Texpand>
+export type TjComponentsTeacherInfoResponse<Texpand = unknown> = Required<TjComponentsTeacherInfoRecord> & BaseSystemFields<Texpand>
 export type UsersResponse<TbeginnerLessons = unknown, TpersonalWordBank = unknown, Tplaylist = unknown, Texpand = unknown> = Required<UsersRecord<TbeginnerLessons, TpersonalWordBank, Tplaylist>> & AuthSystemFields<Texpand>
 export type WorksheetsResponse<Tcontent = unknown, Texpand = unknown> = Required<WorksheetsRecord<Tcontent>> & BaseSystemFields<Texpand>
 
@@ -291,6 +302,7 @@ export type CollectionRecords = {
 	lessons: LessonsRecord
 	pictureDescriptions: PictureDescriptionsRecord
 	teamGames: TeamGamesRecord
+	tj_components_teacher_info: TjComponentsTeacherInfoRecord
 	users: UsersRecord
 	worksheets: WorksheetsRecord
 }
@@ -305,6 +317,7 @@ export type CollectionResponses = {
 	lessons: LessonsResponse
 	pictureDescriptions: PictureDescriptionsResponse
 	teamGames: TeamGamesResponse
+	tj_components_teacher_info: TjComponentsTeacherInfoResponse
 	users: UsersResponse
 	worksheets: WorksheetsResponse
 }

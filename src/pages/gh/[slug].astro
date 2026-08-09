@@ -11,7 +11,7 @@ import { LANGUAGES } from '../../utils/tags';
 import ShareButtons from '../../components/ShareButtons.astro';
 import PostTags from '../../components/PostTags.astro';
 import Recommendations from '../../components/Recommendations.astro';
-import { getPb } from '../../lib/pocketbase';
+import { getPb, fetchTeacherSubmissionUrl } from '../../lib/pocketbase';
 import { mapPbRecord } from '../../lib/pb-worksheet-mapper';
 import { GHOST_API_URL } from '../../lib/env';
 
@@ -103,11 +103,12 @@ if (post.feature_image) {
 }
 
 if (post.html) {
+    const submissionUrl = await fetchTeacherSubmissionUrl();
     // 1. Replace Ghost media URLs (audio, files) with R2 URLs
     post.html = await downloadGhostHtmlAssets(post.html, post.slug, GHOST_API_URL);
     // 2. Optimize images and transform audio/file card HTML structure
     post.html = await transformGhostHtml(post.html, post.slug, GHOST_API_URL);
-    post.html = transformComponentsToScripts(post.html);
+    post.html = transformComponentsToScripts(post.html, submissionUrl);
     post.html = transformYouTubeEmbeds(post.html);
 }
 

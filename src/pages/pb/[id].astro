@@ -1,7 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { Image, getImage } from "astro:assets";
-import { getPb } from "../../lib/pocketbase";
+import { getPb, fetchTeacherSubmissionUrl } from "../../lib/pocketbase";
 import {
   resolveLocalizedAsset,
   resolveLocalizedImage,
@@ -250,9 +250,10 @@ const hideTopImage = [
 ].includes(lessonTypeLower) || pbTagsLower.some((t: string) => 
   ["worksheet", "worksheets", "focused-reading", "focused reader", "lbl-reader"].includes(t)
 );
+const submissionUrl = await fetchTeacherSubmissionUrl();
 let compiledHtml = worksheet.htmlCompiled || "";
 if (isNewLessonType && compiledHtml) {
-  compiledHtml = transformComponentsToScripts(compiledHtml);
+  compiledHtml = transformComponentsToScripts(compiledHtml, submissionUrl);
 }
 const pbTagSlugs = (worksheet.tags || []).map((t: any) => 
   (typeof t === "string" ? t : t.slug || t.name || "").toLowerCase()
@@ -396,7 +397,7 @@ const tagClassList = pbTagSlugs.filter(Boolean).map((t: string) => `tag-${t}`).j
       ) : (
         <>
           <!-- Web Component Wrapper -->
-          <tj-pocketbase-worksheet class="justify-around" submission-url={PUBLIC_SUBMISSION_URL || undefined}>
+          <tj-pocketbase-worksheet class="justify-around" submission-url={submissionUrl || undefined}>
             <script type="application/json" set:html={JSON.stringify(parsedLesson).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')}
             ></script>
           </tj-pocketbase-worksheet>
