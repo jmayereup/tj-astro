@@ -24,9 +24,9 @@ export function transformComponentsToScripts(
 ): string {
   if (!html) return '';
 
-  // Matches tags starting with <tj-, followed by optional attributes,
-  // then the content, then the closing tag.
-  const componentRegex = /<(tj-[a-z-]+)([^>]*)>([\s\S]*?)<\/\1>/gi;
+  // Matches custom element tags (tj-* or legacy tags like grammar-hearts, lbl-reader, speed-review, quiz-element)
+  const componentTagPattern = '(?:tj-[a-z-]+|grammar-hearts|lbl-reader|speed-review|quiz-element|progressive-test|test-element|info-gap|chapter-book|listening|pronunciation)';
+  const componentRegex = new RegExp(`<(${componentTagPattern})([^>]*)>([\\s\\S]*?)<\\/\\1>`, 'gi');
 
   return html.replace(componentRegex, (match, tagName, attrs, content) => {
     // Replace existing submission-url attribute or append if missing (only if submissionUrl is provided)
@@ -54,8 +54,9 @@ export function transformComponentsToScripts(
       return `<${tagName}${newAttrs}>${content}</${tagName}>`;
     }
 
-    // Determine script type based on component (tj-quiz-element uses markdown-like text)
-    const isMarkdown = tagName.toLowerCase() === 'tj-quiz-element';
+    // Determine script type based on component (tj-quiz-element / quiz-element uses markdown-like text)
+    const lowerTag = tagName.toLowerCase();
+    const isMarkdown = lowerTag === 'tj-quiz-element' || lowerTag === 'quiz-element';
     const scriptType = isMarkdown ? 'text/markdown' : 'application/json';
 
     // Generate fallback HTML if it's JSON
