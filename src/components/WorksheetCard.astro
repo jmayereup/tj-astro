@@ -2,12 +2,41 @@
 import { Image } from "astro:assets";
 import placeholderImg from "../assets/images/placeholder.jpg";
 
+import { resolveLocalizedImage } from "../utils/assetResolver";
+
 interface Props {
   post: any;
   lang: string;
 }
 
 const { post, lang } = Astro.props;
+
+let cardImageObj: any = undefined;
+if (post.feature_image) {
+  if (typeof post.feature_image === "object") {
+    cardImageObj = post.feature_image;
+  } else if (typeof post.feature_image === "string") {
+    const urlStr = post.feature_image;
+    let filename = "";
+    try {
+      const urlObj = new URL(urlStr.startsWith("http") ? urlStr : `https://blog.teacherjake.com${urlStr}`);
+      filename = urlObj.pathname.split("/").pop() || "";
+      if (filename && !filename.includes(".")) {
+        const fm = urlObj.searchParams.get("fm");
+        filename = `${filename}${fm ? "." + fm : ".jpg"}`;
+      }
+    } catch {
+      filename = urlStr.split("/").pop() || "";
+    }
+    
+    if (filename) {
+      const resolved = await resolveLocalizedImage(post.type === "pb" || post.source === "pocketbase" ? "pb" : "gh", post.slug || post.id, filename);
+      if (resolved && typeof resolved !== "string") {
+        cardImageObj = resolved;
+      }
+    }
+  }
+}
 
 const levelTag = post.tags?.find((tag: any) =>
   ["A1", "A2", "B1", "B2"].includes(tag.name)
@@ -72,10 +101,10 @@ if (isPb) {
   class="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full"
 >
   <div class="aspect-video w-full shrink-0 bg-slate-50 loading-pulse flex items-center justify-center overflow-hidden relative border-b border-slate-100">
-    {post.feature_image ? (
+    {cardImageObj ? (
       <Image
-        src={post.feature_image}
-        alt={post.title}
+        src={cardImageObj}
+        alt={post.title || ""}
         width={400}
         height={225}
         class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
