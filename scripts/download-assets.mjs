@@ -199,70 +199,11 @@ function getFilenameFromUrl(url, id) {
   }
 }
 
-// 1. Ghost Asset Discovery
+// 1. Ghost Asset Discovery (Disabled - Ghost is decommissioned and content is frozen)
 async function syncGhostAssets() {
-  if (!GHOST_URL || !GHOST_KEY) return console.warn('Ghost credentials missing, skipping Ghost asset sync (expected if Ghost is frozen).');
-
-  console.log('Syncing Ghost assets...');
-  let page = 1;
-  let totalPages = 1;
-  let totalPosts = 0;
-
-  try {
-    do {
-      const browseUrl = `${GHOST_URL}/ghost/api/content/posts/?key=${GHOST_KEY}&include=tags&limit=100&page=${page}`;
-      const res = await fetch(browseUrl);
-      const data = await res.json();
-      const posts = data.posts || [];
-      totalPages = data.meta.pagination.pages;
-      totalPosts += posts.length;
-
-      console.log(`Syncing Ghost assets (page ${page}/${totalPages})...`);
-
-      await mapConcurrent(posts, CONCURRENCY_LIMIT, async (post) => {
-        try {
-          if (post.feature_image) {
-            const filename = getFilenameFromUrl(post.feature_image, post.slug);
-            await downloadFile(post.feature_image, post.slug, filename, 'ghost-assets');
-          }
-
-          if (post.html) {
-            const assetRegex = /(src|data-thumbnail|href)="([^">]+)"/g;
-            let match;
-            const assetTasks = [];
-            while ((match = assetRegex.exec(post.html)) !== null) {
-              const attr = match[1];
-              let url = match[2];
-
-              if (url) {
-                if (attr === 'href' && !['/content/media/', '/content/images/', '/content/files/'].some(p => url.includes(p))) continue;
-                if (attr === 'src' && !url.includes('/content/')) continue;
-                if (url.endsWith('.js') || url.includes('/scripts/')) continue;
-                if (url.includes('youtube.com/') || url.includes('youtu.be/')) continue;
-
-                if (url.startsWith('/')) url = `${GHOST_URL}${url}`;
-                if (url.startsWith('http')) {
-                  const filename = getFilenameFromUrl(url, post.slug);
-                  assetTasks.push(downloadFile(url, post.slug, filename, 'ghost-assets'));
-                }
-              }
-            }
-            if (assetTasks.length > 0) {
-              await Promise.all(assetTasks);
-            }
-          }
-        } catch (postErr) {
-          console.error(`Failed to sync assets for Ghost post ${post.slug}:`, postErr.message);
-        }
-      });
-
-      page++;
-    } while (page <= totalPages);
-
-    console.log(`Total Ghost posts processed: ${totalPosts}`);
-  } catch (err) {
-    console.error('Ghost sync failed:', err);
-  }
+  // Ghost CMS has been decommissioned and content is frozen in src/data/ghost-posts.json.
+  // All Ghost assets are committed to src/assets/ghost-assets/ or saved on R2.
+  return;
 }
 
 // 2. PocketBase Asset Discovery
