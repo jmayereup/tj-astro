@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "node ./scripts/download-assets.mjs && astro build && pagefind --site dist",
+    "build": "node ./scripts/download-assets.mjs && astro build --silent && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro"
   },
