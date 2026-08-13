@@ -28,7 +28,6 @@ pnpm-debug.log*
 # localized assets (downloaded at build time, not committed)
 public/ghost-assets/
 public/pocketbase-assets/
-src/assets/ghost-assets/
 src/assets/pocketbase-assets/
 
 # R2 upload temp directory

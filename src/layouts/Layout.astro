@@ -27,7 +27,8 @@ const isoLang = langMap[currentLang as string] || currentLang || "en";
 const canonicalURL = new URL(Astro.url.pathname, Astro.site || Astro.url);
 
 // Optimize the social image
-const optimizedImage = image
+const shouldOptimize = image && !(typeof image === "string" && image.includes("blog.teacherjake.com"));
+const optimizedImage = shouldOptimize
   ? await getImage({
       src: image,
       width: 1200,

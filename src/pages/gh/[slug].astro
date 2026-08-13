@@ -96,8 +96,10 @@ if (post.feature_image) {
         } else if (resolved) {
             post.feature_image = resolved;
         } else {
-            // Not found locally — fall back to the original remote URL
-            post.feature_image = post.feature_image;
+            // Not found locally — fall back to logo if pointing to decommissioned Ghost blog
+            if (typeof post.feature_image === 'string' && post.feature_image.includes('blog.teacherjake.com')) {
+                post.feature_image = '/tj-logo-big-brighter.png';
+            }
         }
     }
 }
