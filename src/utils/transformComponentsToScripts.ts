@@ -2,21 +2,35 @@ import { PUBLIC_SUBMISSION_URL } from '../lib/env.ts';
 import { renderContentAsHtml } from './serialization.ts';
 
 
+const TAG_NORMALIZATION_MAP: Record<string, string> = {
+  'grammar-hearts': 'tj-grammar-hearts',
+  'lbl-reader': 'tj-reader',
+  'speed-review': 'tj-speed-review',
+  'quiz-element': 'tj-quiz-element',
+  'progressive-test': 'tj-test',
+  'test-element': 'tj-test',
+  'info-gap': 'tj-info-gap',
+  'chapter-book': 'tj-chapter-book',
+  'listening': 'tj-listening',
+  'pronunciation': 'tj-pronunciation',
+};
+
 /**
- * Transforms Ghost HTML content by moving raw JSON/Markdown data from web component tags
+ * Transforms Ghost/PocketBase HTML content by moving raw JSON/Markdown data from web component tags
  * into a child `<script>` tag. This improves compatibility with Astro View Transitions
  * and avoids parsing issues.
  * 
  * Automatically inserts or updates submission-url on each custom element (<tj-*>).
  * Also injects a structured HTML fallback for SEO and slow networks.
+ * Normalizes legacy tag names (e.g. <grammar-hearts>) to canonical tags (e.g. <tj-grammar-hearts>).
  * 
  * Example:
- * <tj-info-gap>{"topic": "test"}</tj-info-gap>
+ * <grammar-hearts>{"topic": "test"}</grammar-hearts>
  * becomes:
- * <tj-info-gap submission-url="...">
+ * <tj-grammar-hearts submission-url="...">
  *   <script type="application/json">{"topic": "test"}</script>
- *   <div class="tj-fallback">...rendered JSON...</div>
- * </tj-info-gap>
+ * </tj-grammar-hearts>
+ * <div class="tj-fallback">...rendered JSON...</div>
  */
 export function transformComponentsToScripts(
   html: string, 
@@ -29,6 +43,9 @@ export function transformComponentsToScripts(
   const componentRegex = new RegExp(`<(${componentTagPattern})([^>]*)>([\\s\\S]*?)<\\/\\1>`, 'gi');
 
   return html.replace(componentRegex, (match, tagName, attrs, content) => {
+    const lowerTag = tagName.toLowerCase();
+    const targetTag = TAG_NORMALIZATION_MAP[lowerTag] || tagName;
+
     // Replace existing submission-url attribute or append if missing (only if submissionUrl is provided)
     let newAttrs = attrs;
     if (submissionUrl) {
@@ -43,20 +60,18 @@ export function transformComponentsToScripts(
       }
     }
 
-
-    // If it already has a script tag, update attributes and return
+    // If it already has a script tag, update tag name/attributes and return
     if (content.includes('<script')) {
-      return `<${tagName}${newAttrs}>${content}</${tagName}>`;
+      return `<${targetTag}${newAttrs}>${content}</${targetTag}>`;
     }
 
     const trimmedContent = content.trim();
     if (!trimmedContent) {
-      return `<${tagName}${newAttrs}>${content}</${tagName}>`;
+      return `<${targetTag}${newAttrs}>${content}</${targetTag}>`;
     }
 
     // Determine script type based on component (tj-quiz-element / quiz-element uses markdown-like text)
-    const lowerTag = tagName.toLowerCase();
-    const isMarkdown = lowerTag === 'tj-quiz-element' || lowerTag === 'quiz-element';
+    const isMarkdown = targetTag === 'tj-quiz-element' || lowerTag === 'tj-quiz-element' || lowerTag === 'quiz-element';
     const scriptType = isMarkdown ? 'text/markdown' : 'application/json';
 
     // Generate fallback HTML if it's JSON
@@ -74,7 +89,7 @@ export function transformComponentsToScripts(
     }
 
     // Reconstruct the tag with the nested script and place fallback AFTER it
-    return `<${tagName}${newAttrs}>\n<script type="${scriptType}">\n${trimmedContent}\n</script>\n</${tagName}>${fallbackHtml}`;
+    return `<${targetTag}${newAttrs}>\n<script type="${scriptType}">\n${trimmedContent}\n</script>\n</${targetTag}>${fallbackHtml}`;
   });
 }
 

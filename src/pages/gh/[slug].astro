@@ -264,7 +264,18 @@ const hideTopImage = tagSlugsLower.some((t: string) =>
   @reference "../../styles/global.css";
   
   /* Standard content padding on mobile and desktop */
-  .worksheet-content > *:not(tj-info-gap, tj-chapter-book, tj-quiz-element, tj-speed-review, tj-grammar-hearts, tj-reader, tj-listening, tj-pronunciation, .tj-audio-card, .tj-file-card) {
+  .worksheet-content > *:not(
+    tj-info-gap, info-gap,
+    tj-chapter-book, chapter-book,
+    tj-quiz-element, quiz-element,
+    tj-speed-review, speed-review,
+    tj-grammar-hearts, grammar-hearts,
+    tj-reader, lbl-reader,
+    tj-listening, listening,
+    tj-pronunciation, pronunciation,
+    tj-test, progressive-test, test-element,
+    .tj-audio-card, .tj-file-card
+  ) {
     @apply px-4 sm:px-8 lg:px-12;
   }
 
@@ -302,7 +313,17 @@ const hideTopImage = tagSlugsLower.some((t: string) =>
   .worksheet-content :where(a) {
     @apply text-blue-600 underline underline-offset-2 hover:text-blue-800;
   }
-  .worksheet-content :is(tj-info-gap, tj-chapter-book, tj-quiz-element, tj-speed-review, tj-grammar-hearts, tj-reader, tj-listening, tj-pronunciation) {
+  .worksheet-content :is(
+    tj-info-gap, info-gap,
+    tj-chapter-book, chapter-book,
+    tj-quiz-element, quiz-element,
+    tj-speed-review, speed-review,
+    tj-grammar-hearts, grammar-hearts,
+    tj-reader, lbl-reader,
+    tj-listening, listening,
+    tj-pronunciation, pronunciation,
+    tj-test, progressive-test, test-element
+  ) {
     @apply my-6 block w-full mx-auto;
   }
 
@@ -385,7 +406,17 @@ const hideTopImage = tagSlugsLower.some((t: string) =>
   }
 
   /* Hide fallbacks once components are defined */
-  :is(tj-info-gap, tj-chapter-book, tj-quiz-element, tj-speed-review, tj-grammar-hearts, tj-reader, tj-listening, tj-pronunciation):defined + .tj-fallback {
+  :is(
+    tj-info-gap, info-gap,
+    tj-chapter-book, chapter-book,
+    tj-quiz-element, quiz-element,
+    tj-speed-review, speed-review,
+    tj-grammar-hearts, grammar-hearts,
+    tj-reader, lbl-reader,
+    tj-listening, listening,
+    tj-pronunciation, pronunciation,
+    tj-test, progressive-test, test-element
+  ):defined + .tj-fallback {
     display: none;
   }
 </style>
