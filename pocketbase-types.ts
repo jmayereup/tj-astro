@@ -254,6 +254,7 @@ export enum WorksheetsLessonTypeOptions {
 	"speed-review" = "speed-review",
 	"chapter-book" = "chapter-book",
 	"pronunciation" = "pronunciation",
+	"tj-test" = "tj-test",
 	"quiz-element" = "quiz-element",
 }
 export type WorksheetsRecord<Tcontent = unknown> = {
