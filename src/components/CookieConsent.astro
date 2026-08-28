@@ -1,8 +1,11 @@
 ---
 // CookieConsent.astro
 // A premium, high-aesthetic cookie consent banner fully compliant with Google Adsense guidelines.
+// Master switch to disable cookie consent banner when no cookies are active
+const ENABLE_COOKIE_CONSENT = false;
 ---
 
+{ENABLE_COOKIE_CONSENT && (
 <div id="cookie-consent-banner" class="fixed bottom-0 left-0 right-0 md:bottom-6 md:right-6 md:left-auto md:max-w-md w-full z-50 p-4 md:p-0 transition-all duration-300 translate-y-20 opacity-0 pointer-events-none">
   <div class="bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-2xl md:rounded-2xl p-5 md:p-6 text-slate-700">
     <div class="flex items-start gap-3.5">
@@ -207,3 +210,4 @@
     document.addEventListener('astro:page-load', initConsentBanner);
   })();
 </script>
+)}

@@ -89,16 +89,22 @@ const socialImageURL = optimizedImage
     <ClientRouter />
     <slot name="head" />
 
-    <!-- Simple Analytics -->
+    <!-- Simple Analytics (Disabled) -->
+    <!--
     <script
       type="text/partytown"
       src="https://scripts.simpleanalyticscdn.com/latest.js"
     ></script>
+    -->
 
     <!-- Google AdSense & Dynamic Consent Loader -->
     <script is:inline>
       (() => {
+        // Master switch to disable Google Ads across the site without removing code
+        const ENABLE_ADSENSE = false;
+
         window.loadGoogleAds = (requestNPA) => {
+          if (!ENABLE_ADSENSE) return;
           if (window.adsScriptLoaded) return;
           window.adsScriptLoaded = true;
 
@@ -111,12 +117,14 @@ const socialImageURL = optimizedImage
           document.head.appendChild(script);
         };
 
-        const consent = localStorage.getItem("tj_cookie_consent");
-        if (consent) {
-          try {
-            const parsed = JSON.parse(consent);
-            window.loadGoogleAds(parsed.marketing === true ? 0 : 1);
-          } catch (e) {}
+        if (ENABLE_ADSENSE) {
+          const consent = localStorage.getItem("tj_cookie_consent");
+          if (consent) {
+            try {
+              const parsed = JSON.parse(consent);
+              window.loadGoogleAds(parsed.marketing === true ? 0 : 1);
+            } catch (e) {}
+          }
         }
       })();
     </script>
@@ -127,6 +135,7 @@ const socialImageURL = optimizedImage
         scrollbar-gutter: stable;
       }
     </style>
+    <!--
     <noscript
       ><img
         src="https://queue.simpleanalyticscdn.com/noscript.gif"
@@ -136,6 +145,7 @@ const socialImageURL = optimizedImage
         height="1"
       />
     </noscript>
+    -->
     <Navigation currentLang={currentLang} currentTag={currentTag} />
 
     <main class="container mx-auto p-0 sm:p-4 max-w-6xl grow">
