@@ -3,6 +3,7 @@ import Navigation from "../components/Navigation.astro";
 import { ClientRouter } from "astro:transitions";
 import { getImage } from "astro:assets";
 import CookieConsent from "../components/CookieConsent.astro";
+import defaultCoverImage from "../assets/tj-logo-big-brighter.png";
 import "../styles/global.css";
 
 const {
@@ -10,7 +11,7 @@ const {
   currentLang,
   currentTag,
   description = "Interactive language learning worksheets and tools for ESL students.",
-  image = "/tj-logo-big-brighter.png",
+  image = defaultCoverImage,
   article = false,
 } = Astro.props;
 
@@ -26,20 +27,31 @@ const isoLang = langMap[currentLang as string] || currentLang || "en";
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site || Astro.url);
 
+const cleanDescription = (description || "").length > 160 
+  ? `${description.slice(0, 157)}...` 
+  : (description || "");
+
 // Optimize the social image
 const shouldOptimize = image && !(typeof image === "string" && image.includes("blog.teacherjake.com"));
-const optimizedImage = shouldOptimize
-  ? await getImage({
+let optimizedImage: any = null;
+try {
+  if (shouldOptimize) {
+    optimizedImage = await getImage({
       src: image,
       width: 1200,
       height: 630,
       format: "jpg",
-    })
-  : null;
+    });
+  }
+} catch (e) {
+  console.warn("[Layout] Failed to optimize image with Astro getImage, falling back to static URL:", e);
+}
 
 const socialImageURL = optimizedImage
   ? new URL(optimizedImage.src, Astro.site || Astro.url)
-  : new URL("/tj-logo-big-brighter.png", Astro.site || Astro.url);
+  : (typeof image === "string" && (image.startsWith("http://") || image.startsWith("https://"))
+      ? image
+      : new URL("/tj-logo-big-brighter.png", Astro.site || Astro.url));
 ---
 
 <!DOCTYPE html>
@@ -56,27 +68,27 @@ const socialImageURL = optimizedImage
     <title>{title}</title>
     <link rel="canonical" href={canonicalURL} />
     <meta name="title" content={title} />
-    <meta name="description" content={description.slice(0, 160) + ".."} />
+    <meta name="description" content={cleanDescription} />
 
     <!-- Open Graph / Facebook -->
+    <meta property="og:site_name" content="Teacher Jake" />
     <meta property="og:type" content={article ? "article" : "website"} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:title" content={title} />
-    <meta
-      property="og:description"
-      content={description.slice(0, 160) + ".."}
-    />
+    <meta property="og:description" content={cleanDescription} />
     <meta property="og:image" content={socialImageURL} />
+    <meta property="og:image:secure_url" content={socialImageURL} />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={canonicalURL} />
-    <meta property="twitter:title" content={title} />
-    <meta
-      property="twitter:description"
-      content={description.slice(0, 160) + ".."}
-    />
-    <meta property="twitter:image" content={socialImageURL} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={cleanDescription} />
+    <meta name="twitter:image" content={socialImageURL} />
 
     <!-- Google Fonts: Lora -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
