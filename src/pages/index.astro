@@ -130,12 +130,38 @@ const description = "Welcome to Teacher Jake. Explore our collection of interact
         ))}
       </div>
     </div>
-    <h3 class="text-lg font-bold text-green-800 mb-1 text-center md:text-left">RECENT - ENGLISH POSTS</h3>
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-16">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 mb-3">
+      <h3 class="text-lg font-bold text-green-800 text-center sm:text-left">RECENT - ENGLISH POSTS</h3>
+      <a
+        href="/english/"
+        data-astro-reload
+        class="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-900 group transition-colors"
+      >
+        <span>View all English posts</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
       {recentPosts.map((post) => {
         const langCode = post.language || (post.tags?.find((t: any) => ['english', 'french', 'german', 'spanish', 'thai'].includes(t.name.toLowerCase()))?.name.toLowerCase() || 'english');
         return <WorksheetCard post={post} lang={langCode} />;
       })}
+    </div>
+
+    <!-- More English Posts Button -->
+    <div class="flex justify-center mb-16">
+      <a
+        href="/english/"
+        data-astro-reload
+        class="group inline-flex items-center gap-2.5 px-6 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 text-base"
+      >
+        <span>More English Posts</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </a>
     </div>
 
   </div>
